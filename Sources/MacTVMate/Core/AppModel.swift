@@ -575,6 +575,9 @@ final class AppModel: ObservableObject {
         } else {
             np["title"] = ch.name
         }
+        np["id"] = ch.id
+        np["favourite"] = target.isLive && library.isFavourite(ch)
+        np["seekable"] = target.isSeekable
         s["playing"] = np
         return s
     }

@@ -58,7 +58,8 @@ Most IPTV providers ship thin or broken guide data, so typical players show "No 
 **Control it your way**
 - Keyboard, media keys, AirPods and Control Center (Now Playing)
 - NVIDIA Shield and other Bluetooth remotes — Back / Home / Menu included
-- **iPhone / iPad remote:** scan the QR code in Settings ▸ Remote & keyboard for a D-pad, channel and volume rockers, buttons that switch the TV between Guide, Movies, Shows, Recordings, My list and Settings, channel groups, Movies & Shows poster browsing with seasons and episodes, your recordings and My list — tap to play on the Mac — and search with your phone keyboard
+- **Remote-style navigation everywhere:** arrows, OK, Back and Menu reach every pane — rail, channel groups, guide, Movies/Shows categories and posters, details, Recordings, My list, Settings and the player controls. Hold OK (or Menu) for Options: favourite, record, remind, catch-up
+- **iPhone / iPad remote** (scan the QR code in Settings ▸ Remote & keyboard): D-pad, channel and volume rockers, Record / Favourite / Audio & subtitles, buttons that switch the TV between sections, channel groups with each channel's schedule (record or get reminded of any programme), Movies & Shows with seasons and episodes, recordings, reminders, favourites and My list, search, and all the settings except playlist logins
 
 ---
 
@@ -108,13 +109,14 @@ open build/MacTVMate.app
 | Key | Action |
 |---|---|
 | ↑ / ↓ | Channel up/down (player) · move (guide) |
-| ← / → | Channel list / info (live) · seek 30 s (movies, catch-up) · move (guide) |
-| Return | Channel list (player) · play / catch-up (guide) |
+| ← / → | Channel list / info (live) · seek 30 s (movies, catch-up) · move (guide); ← at an edge goes to groups, then the rail |
+| Return | Channel list (player) · play / catch-up (guide) · hold for Options |
+| O · Menu | Options (guide, posters) · player controls (while watching) |
 | 0–9 | Jump to channel number |
 | Backspace / L | Previous channel |
 | F · ⌘↩ | Full screen (player) · favourite (guide/list) · full screen anywhere |
+| R | Record the focused programme (guide) · record the stream (player) |
 | / · ⌘F | Search |
-| R | Record current stream |
 | Space · M | Pause · mute |
 | Esc | Back |
 

@@ -188,6 +188,31 @@ final class WebRemote: ObservableObject {
             json(model.remoteToggleMyList(id: r.json["id"] as? String ?? ""))
         case ("GET", "/api/library"):
             Task { json(await model.remoteLibrary()) }
+        case ("GET", "/api/channel"):
+            json(model.remoteChannel(id: r.query["id"] ?? ""))
+        case ("POST", "/api/channel/action"):
+            let id = r.json["id"] as? String ?? ""
+            model.remoteChannelAction(id: id, action: r.json["action"] as? String ?? "", start: r.json["start"] as? Int)
+            json(model.remoteChannel(id: id))
+        case ("POST", "/api/recording/action"):
+            model.remoteRecordingAction(id: r.json["id"] as? String ?? "", action: r.json["action"] as? String ?? "")
+            Task { json(await model.remoteLibrary()) }
+        case ("GET", "/api/tracks"):
+            json(model.remoteTracks())
+        case ("POST", "/api/tracks"):
+            model.remoteSelectTrack(type: r.json["type"] as? String ?? "", id: r.json["id"] as? Int)
+            json(model.remoteTracks())
+        case ("GET", "/api/settings"):
+            json(model.remoteSettings())
+        case ("POST", "/api/settings"):
+            if let k = r.json["key"] as? String { model.remoteSetSetting(key: k, value: r.json["value"]) }
+            json(model.remoteSettings())
+        case ("POST", "/api/settings/group"):
+            if let n = r.json["name"] as? String { model.remoteSetGroupHidden(n, r.json["hidden"] as? Bool ?? false) }
+            json(model.remoteSettings())
+        case ("POST", "/api/reload"):
+            Task { await model.reload(force: true) }
+            json(["ok": true])
         case ("POST", "/api/recording/play"):
             model.remotePlayRecording(id: r.json["id"] as? String ?? "")
             json(model.remoteState())

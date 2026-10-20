@@ -124,6 +124,29 @@ enum RemotePage {
       .ep .t { flex:1; min-width:0; } .ep .t div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
       .ep .d { color:var(--faint); font-size:12px; }
       .ep .w { color:var(--accent); font-size:12px; }
+      .np .gear { flex:none; width:40px; height:40px; border-radius:50%; font-size:20px; align-self:flex-start; }
+      .item .go { flex:none; width:40px; height:40px; border-radius:50%; font-size:15px; }
+      .rec.on { background:#3a1414; color:var(--live); }
+      .hint { color:var(--faint); font-size:12px; text-align:center; margin:10px 8px 0; }
+      .prog { display:flex; gap:10px; align-items:center; padding:11px 4px; border-bottom:1px solid #1f232b; }
+      .prog.past { opacity:.55; }
+      .prog .tm { width:66px; flex:none; color:var(--dim); font-size:12px; font-variant-numeric:tabular-nums; }
+      .prog .t { flex:1; min-width:0; } .prog .t div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .prog .t small { color:var(--dim); font-size:12px; }
+      .prog .ic { flex:none; width:38px; height:38px; border-radius:50%; font-size:15px; }
+      .prog .ic.on { background:var(--accent); color:#fff; }
+      .prog .ic.rec.on { background:var(--live); }
+      .day { margin:14px 4px 2px; font-size:12px; color:var(--faint); text-transform:uppercase; letter-spacing:.06em; }
+      .badge { background:var(--live); color:#fff; font-size:10px; font-weight:700; padding:1px 5px; border-radius:4px; margin-right:4px; }
+      .set { display:flex; align-items:center; gap:10px; padding:12px 4px; border-bottom:1px solid #1f232b; }
+      .set span { flex:1; } .set select { width:auto; margin:0; padding:8px 10px; font-size:14px; }
+      .sw { position:relative; width:50px; height:30px; flex:none; border-radius:15px; background:#3a404c; border:0; }
+      .sw::after { content:''; position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:#fff; transition:left .15s; }
+      .sw.on { background:#34c759; } .sw.on::after { left:23px; }
+      .sw:disabled { opacity:.4; }
+      .swatches { display:flex; flex-wrap:wrap; gap:10px; padding:10px 4px; }
+      .swatches button { width:34px; height:34px; border-radius:50%; border:3px solid transparent; }
+      .swatches button.on { border-color:#fff; }
       /* Tab bar */
       nav { position:fixed; left:0; right:0; bottom:0; display:flex; background:#16191ff2; backdrop-filter:blur(20px);
             -webkit-backdrop-filter:blur(20px); padding:6px 8px calc(env(safe-area-inset-bottom) + 6px); border-top:1px solid #222731; }
@@ -135,10 +158,17 @@ enum RemotePage {
     </style>
     </head>
     <body>
-    <div class="np" id="np"><img id="npimg" alt=""><div class="t"><div class="ch" id="npch">Connecting to MacTVMate…</div>
-      <div class="title" id="nptitle"></div><div class="detail" id="npdetail"></div><div class="bar"><i id="npbar"></i></div></div></div>
+    <div class="np" id="np"><img id="npimg" alt=""><div class="t" id="npt"><div class="ch" id="npch">Connecting to MacTVMate…</div>
+      <div class="title" id="nptitle"></div><div class="detail" id="npdetail"></div><div class="bar"><i id="npbar"></i></div></div>
+      <button class="b gear" id="gear" aria-label="Settings">⚙︎</button></div>
 
     <section class="view show" id="v-remote">
+      <div class="tools" style="grid-template-columns:repeat(4,1fr);margin-top:12px">
+        <button class="b tool rec" data-a="record" id="rec">⏺<small id="reclabel">Record</small></button>
+        <button class="b tool" id="favbtn">☆<small id="favlabel">Favourite</small></button>
+        <button class="b tool" id="tracksbtn">🎧<small>Audio & subs</small></button>
+        <button class="b tool" data-a="info">ⓘ<small>Info</small></button>
+      </div>
       <div class="label">Show on the TV</div>
       <div class="goto">
         <button class="b" data-go="guide">📺 TV guide</button>
@@ -171,16 +201,11 @@ enum RemotePage {
       <div class="tools">
         <button class="b tool" data-a="seekBack">⏪<small>-30s</small></button>
         <button class="b tool" data-a="last">⇄<small>Last</small></button>
-        <button class="b tool" data-a="info">ⓘ<small>Info</small></button>
-        <button class="b tool rec" data-a="recordFocused" id="rec">⏺<small>Rec</small></button>
-        <button class="b tool" data-a="seekFwd">⏩<small>+30s</small></button>
-      </div>
-      <div class="tools" style="grid-template-columns:repeat(3,1fr)">
-        <button class="b tool" data-a="favourite">★<small>Favourite</small></button>
         <button class="b tool" data-a="fullscreen">⛶<small>Full screen</small></button>
         <button class="b tool" id="openkeys">#<small>Number</small></button>
+        <button class="b tool" data-a="seekFwd">⏩<small>+30s</small></button>
       </div>
-      <p class="label" style="text-align:center;text-transform:none;letter-spacing:0">Hold OK for options · Favourite and Record act on what's focused on the TV</p>
+      <p class="hint">⏺ Record records what's playing now. To record a programme later, open the channel in the TV tab (or tap the now-playing card) and tap ⏺ next to it. Hold OK for the options of what's selected on the TV.</p>
     </section>
 
     <section class="view" id="v-tv">
@@ -196,9 +221,11 @@ enum RemotePage {
     </section>
 
     <section class="view" id="v-library">
-      <h3>My list</h3><div class="grid" id="mylist"></div>
+      <h3>Scheduled & recording</h3><div id="upcoming"></div>
       <h3>Recordings</h3><div id="recs"></div>
-      <h3>Scheduled</h3><div id="upcoming"></div>
+      <h3>Reminders</h3><div id="reminders"></div>
+      <h3>Favourite channels</h3><div id="favs"></div>
+      <h3>My list</h3><div class="grid" id="mylist"></div>
     </section>
 
     <section class="view" id="v-search">
@@ -286,6 +313,11 @@ enum RemotePage {
       const p = s.playing;
       $('#mute').classList.toggle('on', !!s.muted);
       $('#rec').classList.toggle('on', !!s.recording);
+      $('#reclabel').textContent = s.recording ? '● Stop rec' : 'Record';
+      state = s;
+      const fav = !!(s.playing && s.playing.favourite);
+      $('#favbtn').firstChild.textContent = fav ? '★' : '☆';
+      $('#favlabel').textContent = fav ? 'Favourite ✓' : 'Favourite';
       if (!p) { $('#npch').textContent = 'Nothing playing'; $('#nptitle').textContent = ''; $('#npdetail').textContent = '';
                 $('#npimg').removeAttribute('src'); return; }
       $('#npch').innerHTML = (p.number ? esc(p.number) + '  ' : '') + esc(p.channel) + (p.live ? ' · <span class="live">LIVE</span>' : '');
@@ -298,6 +330,7 @@ enum RemotePage {
       $('#npbar').style.width = Math.round(frac * 100) + '%';
       $('#pp').textContent = p.paused ? '▶' : '⏸';
     }
+    let state = {};
     function offline() { $('#npch').textContent = 'Can’t reach MacTVMate — is it open on the Mac?'; }
     async function poll() { if (document.hidden) return; try { render(await api('/api/state')); } catch (e) { offline(); } }
     setInterval(poll, 2500); poll();
@@ -308,10 +341,68 @@ enum RemotePage {
       return `<div class="item ${c.playing ? 'cur' : ''}" data-id="${esc(c.id)}">
         <span class="n">${esc(c.number)}</span>${c.logo ? `<img src="${esc(c.logo)}" alt="">` : '<img alt="">'}
         <div class="t"><div class="nm">${esc(c.name)}</div><div class="pg">${esc(sub ?? c.title ?? '')}</div>
-        ${c.score ? `<div class="sc">${esc(c.score)}</div>` : ''}</div></div>`;
+        ${c.score ? `<div class="sc">${esc(c.score)}</div>` : ''}</div>
+        <button class="b go" data-play="${esc(c.id)}" aria-label="Watch">▶</button></div>`;
     }
-    function bindPlay(root) { root.querySelectorAll('.item').forEach(el => el.addEventListener('click', async () => {
-      try { render(await api('/api/play', { id: el.dataset.id })); } catch (e) { offline(); } })); }
+    // Row: open the channel (schedule, record, remind, favourite). ▶: watch straight away.
+    function bindPlay(root) {
+      root.querySelectorAll('.item[data-id]').forEach(el => el.addEventListener('click', e => {
+        if (e.target.closest('[data-play]')) return;
+        openChannel(el.dataset.id);
+      }));
+      root.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', async e => {
+        e.stopPropagation();
+        try { render(await api('/api/play', { id: b.dataset.play })); } catch (err) { offline(); }
+      }));
+    }
+
+    // Channel sheet: watch, favourite, record now, and every programme with record / remind / catch-up
+    async function openChannel(id) {
+      openSheet('<p class="empty">Loading…</p>');
+      try { drawChannel(await api('/api/channel?id=' + encodeURIComponent(id))); }
+      catch (e) { openSheet('<p class="empty">Couldn’t load this channel.</p>'); }
+    }
+    async function channelAction(id, action, start) {
+      try { drawChannel(await api('/api/channel/action', { id, action, start })); poll(); } catch (e) { offline(); }
+    }
+    function drawChannel(c) {
+      if (!c.id) { openSheet('<p class="empty">Channel not found.</p>'); return; }
+      const live = c.programmes.find(p => p.live);
+      let day = '', rows = '';
+      for (const p of c.programmes) {
+        if (p.day !== day) { day = p.day; rows += `<div class="day">${esc(day)}</div>`; }
+        const recOn = !!p.recording;
+        rows += `<div class="prog ${p.past ? 'past' : ''}" data-start="${p.start}">
+          <span class="tm">${esc(p.time.split('–')[0].trim())}</span>
+          <div class="t"><div>${p.live ? '<span class="badge">LIVE</span>' : ''}${esc(p.title)}</div>
+            <small>${esc(p.score || p.time)}${recOn ? ' · ⏺ ' + (p.recording === 'recording' ? 'recording' : 'set to record') : ''}${p.reminder ? ' · 🔔 reminder' : ''}</small></div>
+          ${p.catchup && !p.live ? `<button class="b ic" data-act="catchup" title="Catch-up">↺</button>` : ''}
+          ${!p.past ? `<button class="b ic rec ${recOn ? 'on' : ''}" data-act="${recOn ? 'cancelRecord' : 'record'}" title="Record">⏺</button>` : ''}
+          ${p.future ? `<button class="b ic ${p.reminder ? 'on' : ''}" data-act="${p.reminder ? 'cancelRemind' : 'remind'}" title="Remind me">🔔</button>` : ''}
+        </div>`;
+      }
+      const liveRec = live && live.recording;
+      openSheet(`<div class="hd" style="align-items:center">
+          ${c.logo ? `<img src="${esc(c.logo)}" style="width:80px;height:50px;object-fit:contain">` : ''}
+          <div><h2>${c.number ? esc(c.number) + '  ' : ''}${esc(c.name)}</h2><div class="sub">${esc(c.group)}</div></div></div>
+        <div class="acts"><button class="b primary" id="cwatch">▶ Watch</button>
+          <button class="b" id="cfav">${c.favourite ? '★ Favourite' : '☆ Favourite'}</button></div>
+        <div class="acts" style="margin-top:0"><button class="b ${liveRec ? 'primary' : ''}" id="crec" style="${liveRec ? 'background:var(--live)' : ''}">
+          ${liveRec ? '■ Stop recording' : live ? '⏺ Record “' + esc(live.title) + '”' : '⏺ Record 1 hour'}</button></div>
+        ${rows || '<p class="empty">No guide listings for this channel.</p>'}`);
+      $('#cwatch').addEventListener('click', () => { closeSheet(); channelAction(c.id, 'watch'); });
+      $('#cfav').addEventListener('click', () => channelAction(c.id, 'favourite'));
+      $('#crec').addEventListener('click', () => channelAction(c.id, liveRec ? 'cancelRecord' : 'record', live ? live.start : undefined));
+      $('#sheetcard').querySelectorAll('.prog').forEach(row => {
+        const p = c.programmes.find(x => x.start === +row.dataset.start);
+        row.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', e => {
+          e.stopPropagation(); if (b.dataset.act === 'catchup') closeSheet(); channelAction(c.id, b.dataset.act, p.start); }));
+        row.addEventListener('click', () => {
+          if (p.live) { closeSheet(); channelAction(c.id, 'watch'); }
+          else if (p.catchup) { closeSheet(); channelAction(c.id, 'catchup', p.start); }
+        });
+      });
+    }
     let group = localStorage.getItem('mactvmate-group') || '';
     async function loadGroups() {
       try {
@@ -418,20 +509,91 @@ enum RemotePage {
       } catch (e) { openSheet('<p class="empty">Couldn’t load this show.</p>'); }
     }
 
-    // Library: My list + recordings
+    // Library: recordings, reminders, favourites, My list
     async function loadLibrary() {
       try {
         const r = await api('/api/library');
+        const rec = (x, btns) => `<div class="item" data-rec="${esc(x.id)}"><div class="t"><div class="nm">${esc(x.title)}</div>
+          <div class="pg">${esc(x.channel)} · ${esc(x.time)}</div>${x.status === 'recording' ? '<div class="sc live">● Recording now</div>' : ''}</div>${btns}</div>`;
+        $('#upcoming').innerHTML = r.upcoming.map(x => rec(x, `<button class="b go" data-ra="cancel" title="Cancel">✕</button>`)).join('') ||
+          '<p class="empty">Nothing scheduled — open a channel in TV and tap ⏺ next to a programme.</p>';
+        $('#recs').innerHTML = r.recordings.concat(r.failed || []).map(x => rec(x,
+          (x.playable ? `<button class="b go" data-ra="play" title="Play">▶</button>` : '') +
+          `<button class="b go" data-ra="delete" title="Delete">🗑</button>`)).join('') || '<p class="empty">No recordings yet</p>';
+        $('#reminders').innerHTML = r.reminders.map(x => rec(x, `<button class="b go" data-ra="delete" title="Delete">✕</button>`)).join('') ||
+          '<p class="empty">No reminders</p>';
+        $('#v-library').querySelectorAll('[data-ra]').forEach(b => b.addEventListener('click', async () => {
+          const id = b.closest('[data-rec]').dataset.rec, action = b.dataset.ra;
+          if (action === 'delete' && !confirm('Delete this?')) return;
+          try { await api('/api/recording/action', { id, action }); if (action === 'play') poll(); loadLibrary(); } catch (e) { offline(); }
+        }));
+        $('#favs').innerHTML = r.favourites.map(c => itemHTML(c)).join('') || '<p class="empty">Star channels with ☆ Favourite</p>';
+        bindPlay($('#favs'));
         $('#mylist').innerHTML = r.myList.map(posterHTML).join('') || '<p class="empty" style="grid-column:1/-1">Add movies and shows with ＋ My list</p>';
         bindPosters($('#mylist'));
-        const rec = x => `<div class="item" data-rec="${esc(x.id)}"><div class="t"><div class="nm">${esc(x.title)}</div>
-          <div class="pg">${esc(x.channel)} · ${esc(x.time)}</div>${x.status === 'recording' ? '<div class="sc live">● Recording</div>' : ''}</div>
-          ${x.playable ? '<span>▶</span>' : ''}</div>`;
-        $('#recs').innerHTML = r.recordings.map(rec).join('') || '<p class="empty">No recordings yet</p>';
-        $('#upcoming').innerHTML = r.upcoming.map(rec).join('') || '<p class="empty">Nothing scheduled</p>';
-        $('#recs').querySelectorAll('[data-rec]').forEach(el => el.addEventListener('click', async () => {
-          try { render(await api('/api/recording/play', { id: el.dataset.rec })); } catch (e) { offline(); } }));
       } catch (e) { offline(); }
+    }
+
+    // Favourite / audio & subtitles / now-playing card
+    $('#favbtn').addEventListener('click', async () => {
+      const p = state.playing;
+      if (p && p.id && p.live) { try { await api('/api/channel/action', { id: p.id, action: 'favourite' }); poll(); } catch (e) {} }
+      else act('favourite');
+    });
+    $('#npt').addEventListener('click', () => { const p = state.playing; if (p && p.id && p.live) openChannel(p.id); });
+    $('#tracksbtn').addEventListener('click', openTracks);
+    async function openTracks() {
+      try {
+        const t = await api('/api/tracks');
+        const row = (type, x) => `<div class="item" data-type="${type}" data-tid="${x.id ?? ''}"><div class="t"><div class="nm">${x.selected ? '✓ ' : ''}${esc(x.title)}</div></div></div>`;
+        const subsOff = !t.subtitles.some(x => x.selected);
+        openSheet(`<h2>Audio & subtitles</h2><h3>Audio</h3>${t.audio.map(x => row('audio', x)).join('') || '<p class="empty">Nothing playing</p>'}
+          <h3>Subtitles</h3>${row('subtitles', { id: null, title: 'Off', selected: subsOff })}${t.subtitles.map(x => row('subtitles', x)).join('')}`);
+        $('#sheetcard').querySelectorAll('[data-type]').forEach(el => el.addEventListener('click', async () => {
+          const id = el.dataset.tid === '' ? null : +el.dataset.tid;
+          try { await api('/api/tracks', { type: el.dataset.type, id }); openTracks(); } catch (e) {}
+        }));
+      } catch (e) { offline(); }
+    }
+
+    // Settings (everything except playlist logins, which stay on the Mac)
+    $('#gear').addEventListener('click', openSettings);
+    async function openSettings() {
+      try { drawSettings(await api('/api/settings')); } catch (e) { offline(); }
+    }
+    function drawSettings(r) {
+      let html = '<h2>Settings</h2>', section = '';
+      for (const it of r.items) {
+        if (it.section !== section) { section = it.section; html += `<h3>${esc(section)}</h3>`; }
+        if (it.type === 'bool') {
+          html += `<div class="set"><span>${esc(it.title)}</span><button class="sw ${it.value ? 'on' : ''}" data-key="${it.key}" data-bool="${it.value ? 1 : 0}"></button></div>`;
+        } else if (it.key === 'accent') {
+          html += `<div class="set"><span>${esc(it.title)}</span></div><div class="swatches">${it.options.map(o =>
+            `<button class="${o.value === it.value ? 'on' : ''}" style="background:${o.hex}" data-key="accent" data-val="${esc(o.value)}" title="${esc(o.label)}"></button>`).join('')}</div>`;
+        } else {
+          html += `<div class="set"><span>${esc(it.title)}</span><select data-key="${it.key}">${it.options.map(o =>
+            `<option value="${o.value}" ${o.value === it.value ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></div>`;
+        }
+      }
+      html += `<p class="hint" style="text-align:left">Display: ${esc(r.display)}</p>`;
+      html += `<h3>Playlist & guide</h3><div class="set"><span>${esc(r.status)}</span><button class="b" id="reload" style="padding:10px 14px;border-radius:10px">Update now</button></div>`;
+      html += r.guide.map(g => `<div class="set"><span>${g.ok ? '✅' : '⚠️'} ${esc(g.name)}<br><small style="color:var(--dim)">${esc(g.note)}</small></span></div>`).join('');
+      html += `<h3>Channel groups</h3>` + r.groups.map(g => `<div class="set"><span>${esc(g.name)} <small style="color:var(--faint)">${g.count}${g.locked ? ' · hidden by adult filter' : ''}</small></span>
+        <button class="sw ${g.hidden ? '' : 'on'}" data-group="${esc(g.name)}" data-hidden="${g.hidden ? 1 : 0}" ${g.locked ? 'disabled' : ''}></button></div>`).join('');
+      html += `<p class="hint">Playlists and provider logins are edited on the Mac (Settings ▸ Playlists) so they never travel over Wi-Fi.</p>`;
+      openSheet(html);
+      const card = $('#sheetcard');
+      card.querySelectorAll('.sw[data-key]').forEach(b => b.addEventListener('click', () => setSetting(b.dataset.key, b.dataset.bool !== '1')));
+      card.querySelectorAll('select[data-key]').forEach(sel => sel.addEventListener('change', () => setSetting(sel.dataset.key, +sel.value)));
+      card.querySelectorAll('.swatches [data-key]').forEach(b => b.addEventListener('click', () => setSetting('accent', b.dataset.val)));
+      card.querySelectorAll('.sw[data-group]').forEach(b => b.addEventListener('click', async () => {
+        try { drawSettings(await api('/api/settings/group', { name: b.dataset.group, hidden: b.dataset.hidden !== '1' })); } catch (e) {}
+      }));
+      $('#reload').addEventListener('click', async () => { try { await api('/api/reload', {}); $('#reload').textContent = 'Updating…'; } catch (e) {} });
+    }
+    async function setSetting(key, value) {
+      const y = $('#sheetcard').scrollTop;
+      try { drawSettings(await api('/api/settings', { key, value })); $('#sheetcard').scrollTop = y; } catch (e) { offline(); }
     }
 
     // Search
