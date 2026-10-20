@@ -156,13 +156,40 @@ final class WebRemote: ObservableObject {
         case ("GET", "/api/state"):
             json(model.remoteState())
         case ("GET", "/api/groups"):
-            json(model.library.groups.map { ["name": $0.name, "count": $0.count] })
+            json(["selected": model.selectedGroup, "groups": model.library.groups.map { ["name": $0.name, "count": $0.count] }])
         case ("GET", "/api/channels"):
             json(model.remoteChannels(group: r.query["group"] ?? model.selectedGroup))
         case ("GET", "/api/search"):
             json(model.remoteSearch(r.query["q"] ?? ""))
         case ("POST", "/api/play"):
             if let id = r.json["id"] as? String { model.remotePlay(id: id) }
+            json(model.remoteState())
+        case ("POST", "/api/go"):
+            if let s = r.json["section"] as? String { model.remoteGo(s) }
+            json(model.remoteState())
+        case ("POST", "/api/group"):
+            if let g = r.json["name"] as? String { model.remoteSelectGroup(g) }
+            json(["ok": true])
+        case ("GET", "/api/vod"):
+            let kind: VODKind = r.query["kind"] == "series" ? .series : .movies
+            Task { json(await model.remoteVOD(kind: kind, category: r.query["cat"] ?? "", query: r.query["q"] ?? "",
+                                              offset: Int(r.query["offset"] ?? "") ?? 0)) }
+        case ("GET", "/api/series"):
+            Task { json(await model.remoteSeries(id: r.query["id"] ?? "")) }
+        case ("POST", "/api/vod/play"):
+            let id = r.json["id"] as? String ?? ""
+            if let ep = r.json["episode"] as? Int {
+                Task { await model.remotePlayEpisode(series: id, episode: ep); json(model.remoteState()) }
+            } else {
+                model.remotePlayMovie(id: id)
+                json(model.remoteState())
+            }
+        case ("POST", "/api/mylist"):
+            json(model.remoteToggleMyList(id: r.json["id"] as? String ?? ""))
+        case ("GET", "/api/library"):
+            Task { json(await model.remoteLibrary()) }
+        case ("POST", "/api/recording/play"):
+            model.remotePlayRecording(id: r.json["id"] as? String ?? "")
             json(model.remoteState())
         default:
             send("404 Not Found", "text/plain", Data("Not found".utf8))

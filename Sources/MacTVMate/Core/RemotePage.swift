@@ -79,7 +79,51 @@ enum RemotePage {
       h3 { margin:16px 4px 4px; font-size:12px; color:var(--faint); text-transform:uppercase; letter-spacing:.06em; }
       .keys { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin:20px auto; max-width:320px; }
       .keys button { height:72px; border-radius:20px; font-size:28px; }
-      .entry { text-align:center; font-size:40px; font-weight:700; min-height:52px; margin-top:18px; font-variant-numeric:tabular-nums; }
+      .entry { text-align:center; font-size:34px; color:var(--dim); font-weight:700; min-height:52px; margin-top:18px; font-variant-numeric:tabular-nums; }
+      /* Section jump + chips */
+      .goto { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:14px 0 4px; }
+      .goto button { height:44px; border-radius:12px; font-size:13px; flex-direction:row; gap:6px; }
+      .goto button.on { background:var(--accent); color:#fff; }
+      .label { font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.06em; margin:14px 4px 0; }
+      .chips { display:flex; gap:8px; overflow-x:auto; padding:12px 0 6px; margin:0 -16px; padding-left:16px; padding-right:16px;
+               scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+      .chips::-webkit-scrollbar { display:none; }
+      #groups, #cats { position:sticky; top:0; z-index:2; background:var(--bg); padding-top:calc(env(safe-area-inset-top) + 8px); }
+      .chip { flex:none; border:0; border-radius:999px; padding:9px 14px; background:var(--panel); color:var(--text); font:inherit;
+              font-size:14px; white-space:nowrap; }
+      .chip.sel { background:var(--accent); color:#fff; font-weight:600; }
+      .chip small { color:inherit; opacity:.6; margin-left:4px; font-size:12px; }
+      /* Poster grid */
+      .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px 10px; margin-top:8px; }
+      .poster { position:relative; }
+      .poster .img { aspect-ratio:2/3; border-radius:10px; background:var(--panel) center/cover no-repeat; }
+      .poster .nm { font-size:12px; font-weight:600; margin-top:5px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+      .poster .rt { position:absolute; left:5px; top:5px; background:#000c; color:#f5c518; font-size:10px; font-weight:700;
+                    padding:2px 5px; border-radius:5px; }
+      .poster .rs { position:absolute; right:5px; top:5px; background:var(--accent); color:#fff; font-size:10px; font-weight:700;
+                    padding:2px 5px; border-radius:5px; }
+      .more { width:100%; height:46px; border-radius:12px; margin:16px 0; }
+      .empty { color:var(--dim); text-align:center; padding:30px 10px; }
+      /* Sheet */
+      .sheet { position:fixed; inset:0; background:#000a; display:none; z-index:10; }
+      .sheet.show { display:block; }
+      .sheet .card { position:absolute; left:0; right:0; bottom:0; max-height:86vh; overflow-y:auto; background:var(--bg);
+                     border-radius:20px 20px 0 0; padding:18px 16px calc(env(safe-area-inset-bottom) + 18px); }
+      .sheet .hd { display:flex; gap:14px; }
+      .sheet .hd .img { width:96px; flex:none; aspect-ratio:2/3; border-radius:10px; background:var(--panel) center/cover no-repeat; }
+      .sheet h2 { margin:0 0 6px; font-size:19px; }
+      .sheet .sub { color:var(--dim); font-size:13px; }
+      .sheet .plot { color:var(--dim); font-size:13px; margin-top:8px; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+      .sheet .acts { display:flex; gap:10px; margin:16px 0 6px; }
+      .sheet .acts button { flex:1; height:48px; border-radius:12px; font-size:15px; flex-direction:row; gap:6px; }
+      .sheet .primary { background:var(--accent); color:#fff; font-weight:600; }
+      .sheet .x { position:absolute; right:12px; top:12px; width:34px; height:34px; font-size:16px; }
+      .ep { display:flex; gap:10px; align-items:center; padding:12px 4px; border-bottom:1px solid #1f232b; }
+      .ep:active { background:var(--panel); }
+      .ep .no { color:var(--faint); width:26px; text-align:right; flex:none; font-variant-numeric:tabular-nums; }
+      .ep .t { flex:1; min-width:0; } .ep .t div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+      .ep .d { color:var(--faint); font-size:12px; }
+      .ep .w { color:var(--accent); font-size:12px; }
       /* Tab bar */
       nav { position:fixed; left:0; right:0; bottom:0; display:flex; background:#16191ff2; backdrop-filter:blur(20px);
             -webkit-backdrop-filter:blur(20px); padding:6px 8px calc(env(safe-area-inset-bottom) + 6px); border-top:1px solid #222731; }
@@ -95,6 +139,15 @@ enum RemotePage {
       <div class="title" id="nptitle"></div><div class="detail" id="npdetail"></div><div class="bar"><i id="npbar"></i></div></div></div>
 
     <section class="view show" id="v-remote">
+      <div class="label">Show on the TV</div>
+      <div class="goto">
+        <button class="b" data-go="guide">📺 TV guide</button>
+        <button class="b" data-go="movies">🎬 Movies</button>
+        <button class="b" data-go="shows">🍿 Shows</button>
+        <button class="b" data-go="recordings">⏺ Recordings</button>
+        <button class="b" data-go="mylist">🔖 My list</button>
+        <button class="b" data-go="settings">⚙︎ Settings</button>
+      </div>
       <div class="row">
         <button class="b sm" data-a="back">↩<small>Back</small></button>
         <button class="b sm" data-a="home">⌂<small>Guide</small></button>
@@ -122,14 +175,28 @@ enum RemotePage {
         <button class="b tool rec" data-a="record" id="rec">⏺<small>Rec</small></button>
         <button class="b tool" data-a="seekFwd">⏩<small>+30s</small></button>
       </div>
-      <div class="tools" style="grid-template-columns:1fr">
-        <button class="b tool" data-a="fullscreen">⛶ <small>Full screen on the Mac</small></button>
+      <div class="tools" style="grid-template-columns:2fr 1fr">
+        <button class="b tool" data-a="fullscreen">⛶<small>Full screen on the Mac</small></button>
+        <button class="b tool" id="openkeys">#<small>Number</small></button>
       </div>
     </section>
 
-    <section class="view" id="v-now">
-      <select id="group"></select>
+    <section class="view" id="v-tv">
+      <div class="chips" id="groups"></div>
       <div id="chlist"></div>
+    </section>
+
+    <section class="view" id="v-vod">
+      <div class="chips" id="cats"></div>
+      <input type="search" id="vq" placeholder="Search movies" autocomplete="off" autocorrect="off">
+      <div class="grid" id="vgrid"></div>
+      <button class="b more" id="vmore" style="display:none">Load more</button>
+    </section>
+
+    <section class="view" id="v-library">
+      <h3>My list</h3><div class="grid" id="mylist"></div>
+      <h3>Recordings</h3><div id="recs"></div>
+      <h3>Scheduled</h3><div id="upcoming"></div>
     </section>
 
     <section class="view" id="v-search">
@@ -138,7 +205,7 @@ enum RemotePage {
     </section>
 
     <section class="view" id="v-keys">
-      <div class="entry" id="entry"></div>
+      <div class="entry" id="entry">Channel number</div>
       <div class="keys">
         <button class="b" data-d="1">1</button><button class="b" data-d="2">2</button><button class="b" data-d="3">3</button>
         <button class="b" data-d="4">4</button><button class="b" data-d="5">5</button><button class="b" data-d="6">6</button>
@@ -147,11 +214,15 @@ enum RemotePage {
       </div>
     </section>
 
+    <div class="sheet" id="sheet"><div class="card" id="sheetcard"></div></div>
+
     <nav>
       <button data-v="remote" class="sel"><b>◎</b>Remote</button>
-      <button data-v="now"><b>☰</b>On now</button>
+      <button data-v="tv"><b>📺</b>TV</button>
+      <button data-v="movies"><b>🎬</b>Movies</button>
+      <button data-v="shows"><b>🍿</b>Shows</button>
+      <button data-v="library"><b>🔖</b>Library</button>
       <button data-v="search"><b>⌕</b>Search</button>
-      <button data-v="keys"><b>#</b>Number</button>
     </nav>
 
     <script>
@@ -179,16 +250,30 @@ enum RemotePage {
       ['pointerup','pointerleave','pointercancel'].forEach(t => btn.addEventListener(t, stop));
     });
 
-    // Tabs
-    document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
-      document.querySelectorAll('nav button').forEach(x => x.classList.toggle('sel', x === b));
-      document.querySelectorAll('.view').forEach(v => v.classList.toggle('show', v.id === 'v-' + b.dataset.v));
-      if (b.dataset.v === 'now') loadChannels();
-      if (b.dataset.v === 'search') setTimeout(() => $('#q').focus(), 50);
+    // Tabs (Movies and Shows share one view)
+    function showView(v) {
+      document.querySelectorAll('nav button').forEach(x => x.classList.toggle('sel', x.dataset.v === v));
+      const id = (v === 'movies' || v === 'shows') ? 'vod' : v;
+      document.querySelectorAll('.view').forEach(el => el.classList.toggle('show', el.id === 'v-' + id));
+      if (v === 'tv') loadChannels();
+      if (v === 'movies' || v === 'shows') openVOD(v === 'movies' ? 'movies' : 'series');
+      if (v === 'library') loadLibrary();
+      if (v === 'search') setTimeout(() => $('#q').focus(), 50);
+      window.scrollTo(0, 0);
+    }
+    document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showView(b.dataset.v)));
+    $('#openkeys').addEventListener('click', () => showView('keys'));
+
+    // Show a section on the Mac
+    document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', async () => {
+      try { render(await api('/api/go', { section: b.dataset.go })); } catch (e) { offline(); }
     }));
+    const screenOf = { guide: 'guide', movies: 'movies', shows: 'shows', recordings: 'recordings', myList: 'mylist' };
 
     // Now playing
     function render(s) {
+      const cur = s.screen === 'player' ? '' : screenOf[s.screen];
+      document.querySelectorAll('[data-go]').forEach(b => b.classList.toggle('on', b.dataset.go === cur));
       const p = s.playing;
       $('#mute').classList.toggle('on', !!s.muted);
       $('#rec').classList.toggle('on', !!s.recording);
@@ -218,25 +303,127 @@ enum RemotePage {
     }
     function bindPlay(root) { root.querySelectorAll('.item').forEach(el => el.addEventListener('click', async () => {
       try { render(await api('/api/play', { id: el.dataset.id })); } catch (e) { offline(); } })); }
+    let group = localStorage.getItem('mactvmate-group') || '';
     async function loadGroups() {
       try {
-        const g = await api('/api/groups');
-        const saved = localStorage.getItem('mactvmate-group');
-        $('#group').innerHTML = g.map(x => `<option ${x.name === saved ? 'selected' : ''}>${esc(x.name)}</option>`).join('');
+        const r = await api('/api/groups');
+        if (!r.groups.some(g => g.name === group)) group = r.selected;
+        $('#groups').innerHTML = r.groups.map(g =>
+          `<button class="chip ${g.name === group ? 'sel' : ''}" data-g="${esc(g.name)}">${esc(g.name)}<small>${g.count}</small></button>`).join('');
+        $('#groups').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+          group = c.dataset.g;
+          $('#groups').querySelectorAll('.chip').forEach(x => x.classList.toggle('sel', x === c));
+          api('/api/group', { name: group }).catch(() => {});
+          loadChannels();
+        }));
+        $('#groups .chip.sel')?.scrollIntoView({ inline: 'center', block: 'nearest' });
       } catch (e) {}
     }
     async function loadChannels() {
-      if (!$('#group').options.length) await loadGroups();
-      const group = $('#group').value;
+      if (!$('#groups').children.length) await loadGroups();
       localStorage.setItem('mactvmate-group', group);
       try {
         const r = await api('/api/channels?group=' + encodeURIComponent(group));
         $('#chlist').innerHTML = r.channels.map(c => itemHTML(c, c.title ? `${c.title} · ${c.time}` : '')).join('') ||
-          '<p class="err" style="margin-top:20px">No channels</p>';
+          '<p class="empty">No channels</p>';
         bindPlay($('#chlist'));
       } catch (e) { offline(); }
     }
-    $('#group').addEventListener('change', loadChannels);
+
+    // Movies & shows
+    const vod = { kind: 'movies', cat: '', q: '', offset: 0, cats: {} };
+    async function openVOD(kind) {
+      if (vod.kind !== kind) { vod.kind = kind; vod.cat = ''; vod.q = ''; $('#vq').value = ''; }
+      $('#vq').placeholder = kind === 'movies' ? 'Search movies' : 'Search shows';
+      loadVOD(false);
+    }
+    function posterHTML(it) {
+      return `<div class="poster" data-id="${esc(it.id)}" data-kind="${esc(it.kind)}" data-inlist="${it.inList ? 1 : 0}">
+        <div class="img" style="background-image:url('${esc(it.poster)}')"></div>
+        ${it.rating ? `<span class="rt">${esc(it.rating)}</span>` : ''}${it.resume ? '<span class="rs">Resume</span>' : ''}
+        <div class="nm">${esc(it.name)}</div></div>`;
+    }
+    function bindPosters(root) { root.querySelectorAll('.poster').forEach(el => el.addEventListener('click', () =>
+      el.dataset.kind === 'series' ? openSeries(el.dataset.id) : openMovie(el))); }
+    async function loadVOD(append) {
+      if (!append) { vod.offset = 0; $('#vgrid').innerHTML = '<p class="empty">Loading…</p>'; }
+      try {
+        const r = await api(`/api/vod?kind=${vod.kind}&cat=${encodeURIComponent(vod.cat)}&q=${encodeURIComponent(vod.q)}&offset=${vod.offset}`);
+        $('#cats').innerHTML = r.categories.map(c => `<button class="chip ${c.id === vod.cat ? 'sel' : ''}" data-c="${esc(c.id)}">${esc(c.name)}</button>`).join('');
+        $('#cats').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { vod.cat = c.dataset.c; loadVOD(false); }));
+        if (!append) $('#cats .chip.sel')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+        const html = r.items.map(posterHTML).join('');
+        if (append) $('#vgrid').insertAdjacentHTML('beforeend', html);
+        else $('#vgrid').innerHTML = html || '<p class="empty" style="grid-column:1/-1">Nothing here</p>';
+        bindPosters($('#vgrid'));
+        vod.offset = r.offset + r.items.length;
+        $('#vmore').style.display = vod.offset < r.total ? 'block' : 'none';
+      } catch (e) { offline(); }
+    }
+    $('#vmore').addEventListener('click', () => loadVOD(true));
+    let vt;
+    $('#vq').addEventListener('input', () => { clearTimeout(vt); vt = setTimeout(() => { vod.q = $('#vq').value.trim(); loadVOD(false); }, 300); });
+
+    // Detail sheets
+    function openSheet(html) { $('#sheetcard').innerHTML = '<button class="b x" id="sx">✕</button>' + html; $('#sheet').classList.add('show');
+      $('#sx').addEventListener('click', closeSheet); }
+    function closeSheet() { $('#sheet').classList.remove('show'); }
+    $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+    function listBtn(id, inList) { return `<button class="b" data-list="${esc(id)}">${inList ? '✓ In My list' : '＋ My list'}</button>`; }
+    function bindList() { $('#sheetcard').querySelectorAll('[data-list]').forEach(b => b.addEventListener('click', async () => {
+      try { const r = await api('/api/mylist', { id: b.dataset.list }); b.textContent = r.inList ? '✓ In My list' : '＋ My list'; } catch (e) {}
+    })); }
+    function openMovie(el) {
+      const id = el.dataset.id, name = el.querySelector('.nm').textContent, img = el.querySelector('.img').style.backgroundImage;
+      const rt = el.querySelector('.rt')?.textContent || '', resume = !!el.querySelector('.rs');
+      openSheet(`<div class="hd"><div class="img" style='background-image:${img}'></div><div><h2>${esc(name)}</h2><div class="sub">${esc(rt)}</div></div></div>
+        <div class="acts"><button class="b primary" id="mplay">▶ ${resume ? 'Resume' : 'Play'} on TV</button>${listBtn(id, el.dataset.inlist === '1')}</div>`);
+      bindList();
+      $('#mplay').addEventListener('click', async () => { closeSheet(); try { render(await api('/api/vod/play', { id })); } catch (e) { offline(); } });
+    }
+    async function openSeries(id) {
+      openSheet('<p class="empty">Loading episodes…</p>');
+      try {
+        const s = await api('/api/series?id=' + encodeURIComponent(id));
+        const seasons = s.seasons || [];
+        let cur = seasons.length ? seasons[0].season : 0;
+        if (s.next) for (const se of seasons) if (se.episodes.some(e => e.id === s.next.episode)) cur = se.season;
+        const draw = () => {
+          const se = seasons.find(x => x.season === cur);
+          $('#eps').innerHTML = (se ? se.episodes : []).map(e => `<div class="ep" data-ep="${e.id}"><span class="no">${e.number}</span>
+            <div class="t"><div>${esc(e.title)}</div>${e.resume ? '<span class="w">In progress</span>' : e.watched ? '<span class="w">✓ Last watched</span>' : ''}</div>
+            <span class="d">${esc(e.duration)}</span></div>`).join('') || '<p class="empty">No episodes listed</p>';
+          $('#eps').querySelectorAll('.ep').forEach(el => el.addEventListener('click', () => playEp(+el.dataset.ep)));
+          $('#seasons').querySelectorAll('.chip').forEach(c => c.classList.toggle('sel', +c.dataset.s === cur));
+        };
+        const playEp = async ep => { closeSheet(); try { render(await api('/api/vod/play', { id, episode: ep })); } catch (e) { offline(); } };
+        openSheet(`<div class="hd"><div class="img" style="background-image:url('${esc(s.poster)}')"></div>
+          <div><h2>${esc(s.name)}</h2><div class="plot">${esc(s.plot)}</div></div></div>
+          <div class="acts">${s.next ? `<button class="b primary" id="snext">▶ ${esc(s.next.label)}</button>` : ''}${listBtn(id, s.inList)}</div>
+          <div class="chips" id="seasons">${seasons.map(x => `<button class="chip" data-s="${x.season}">Season ${x.season}</button>`).join('')}</div>
+          <div id="eps"></div>`);
+        bindList();
+        if (s.next) $('#snext').addEventListener('click', () => playEp(s.next.episode));
+        $('#seasons').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { cur = +c.dataset.s; draw(); }));
+        draw();
+      } catch (e) { openSheet('<p class="empty">Couldn’t load this show.</p>'); }
+    }
+
+    // Library: My list + recordings
+    async function loadLibrary() {
+      try {
+        const r = await api('/api/library');
+        $('#mylist').innerHTML = r.myList.map(posterHTML).join('') || '<p class="empty" style="grid-column:1/-1">Add movies and shows with ＋ My list</p>';
+        bindPosters($('#mylist'));
+        const rec = x => `<div class="item" data-rec="${esc(x.id)}"><div class="t"><div class="nm">${esc(x.title)}</div>
+          <div class="pg">${esc(x.channel)} · ${esc(x.time)}</div>${x.status === 'recording' ? '<div class="sc live">● Recording</div>' : ''}</div>
+          ${x.playable ? '<span>▶</span>' : ''}</div>`;
+        $('#recs').innerHTML = r.recordings.map(rec).join('') || '<p class="empty">No recordings yet</p>';
+        $('#upcoming').innerHTML = r.upcoming.map(rec).join('') || '<p class="empty">Nothing scheduled</p>';
+        $('#recs').querySelectorAll('[data-rec]').forEach(el => el.addEventListener('click', async () => {
+          try { render(await api('/api/recording/play', { id: el.dataset.rec })); } catch (e) { offline(); } }));
+      } catch (e) { offline(); }
+    }
 
     // Search
     let st;
@@ -258,7 +445,7 @@ enum RemotePage {
     let entry = '', et;
     document.querySelectorAll('[data-d]').forEach(b => b.addEventListener('pointerdown', e => {
       e.preventDefault(); entry += b.dataset.d; $('#entry').textContent = entry; act('digit', +b.dataset.d);
-      clearTimeout(et); et = setTimeout(() => { entry = ''; $('#entry').textContent = ''; }, 1600);
+      clearTimeout(et); et = setTimeout(() => { entry = ''; $('#entry').textContent = 'Channel number'; }, 1600);
     }));
     </script>
     </body>

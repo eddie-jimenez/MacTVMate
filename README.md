@@ -58,7 +58,7 @@ Most IPTV providers ship thin or broken guide data, so typical players show "No 
 **Control it your way**
 - Keyboard, media keys, AirPods and Control Center (Now Playing)
 - NVIDIA Shield and other Bluetooth remotes — Back / Home / Menu included
-- **iPhone / iPad remote:** scan the QR code in Settings ▸ Remote & keyboard for a D-pad, channel and volume rockers, *On now*, and search with your phone keyboard
+- **iPhone / iPad remote:** scan the QR code in Settings ▸ Remote & keyboard for a D-pad, channel and volume rockers, buttons that switch the TV between Guide, Movies, Shows, Recordings, My list and Settings, channel groups, Movies & Shows poster browsing with seasons and episodes, your recordings and My list — tap to play on the Mac — and search with your phone keyboard
 
 ---
 
