@@ -165,6 +165,12 @@ final class AppModel: ObservableObject {
         flashInfoBar()
     }
 
+    /// Plays a live channel in the guide's preview (no-op if it's already the one playing).
+    func preview(_ channel: Channel) {
+        if case .live(let c)? = playing, c.id == channel.id, !player.isIdle { return }
+        play(channel, fullscreen: false)
+    }
+
     func playCatchup(_ channel: Channel, _ programme: Programme) {
         saveVODPosition()
         guard let url = Catchup.url(for: channel, programme: programme, xtream: xtreamClient, serverTimeZone: library.xtreamTimeZone) else { return }

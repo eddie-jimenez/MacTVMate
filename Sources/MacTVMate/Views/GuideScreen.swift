@@ -355,7 +355,7 @@ struct GuideRow: View {
                     cell(title: channel.name, subtitle: "No information", x: 0, width: (end.timeIntervalSince(start)) * pxPerSec,
                          focused: selectedRow, live: true, fs: fs)
                         .onTapGesture(count: 2) { model.play(channel) }
-                        .onTapGesture { model.guideRow = row; model.guideTime = model.now }
+                        .onTapGesture { model.guideRow = row; model.guideTime = model.now; model.preview(channel) }
                 }
                 ForEach(progs) { p in
                     let x0 = max(p.start, start).timeIntervalSince(start) * pxPerSec
@@ -371,7 +371,12 @@ struct GuideRow: View {
                         .onTapGesture(count: 2) {
                             model.guideRow = row; model.guideTime = p.start.addingTimeInterval(1); model.guideActivate()
                         }
-                        .onTapGesture { model.guideRow = row; model.guideTime = max(p.start, start).addingTimeInterval(1) }
+                        .onTapGesture {
+                            model.guideRow = row
+                            model.guideTime = max(p.start, start).addingTimeInterval(1)
+                            // What's on now plays in the preview; past/future programmes are just selected.
+                            if p.isLive(at: model.now) { model.preview(channel) }
+                        }
                         .contextMenu {
                             if p.isLive(at: model.now) { Button("Watch") { model.play(channel) } }
                             if p.stop > model.now { Button(model.recorder.isScheduled(channel, p) ? "Cancel recording" : "Record") { model.toggleRecord(channel, p) } }
