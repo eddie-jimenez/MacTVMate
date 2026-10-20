@@ -1,0 +1,15 @@
+# Build output
+.build/
+build/
+.swiftpm/
+*.xcodeproj
+xcuserdata/
+DerivedData/
+
+# Private research material — never published (third-party binaries / decompiled code)
+re/
+
+# Local libmpv experiments, crash logs, macOS cruft
+vendor/
+*.ips
+.DS_Store

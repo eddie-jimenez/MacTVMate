@@ -1,0 +1,9 @@
+#EXTM3U url-tvg="samples/test-epg.xml"
+#EXTINF:-1 tvg-id="bipbop" tvg-chno="1" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/f/fa/Apple_logo_black.svg/120px-Apple_logo_black.svg.png" group-title="Test HLS",Apple BipBop (HLS)
+https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8
+#EXTINF:-1 tvg-id="mux" tvg-chno="2" group-title="Test HLS",Mux Big Buck Bunny
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="sintel" tvg-chno="3" group-title="Test HLS" catchup="append" catchup-days="2" catchup-source="?start={utc}&end={utcend}",BipBop 16x9 (fake catch-up)
+https://devstreaming-cdn.apple.com/videos/streaming/examples/bipbop_16x9/bipbop_16x9_variant.m3u8
+#EXTINF:-1 tvg-id="tos" tvg-chno="4" group-title="Test MP4",Tears of Steel (MP4)
+https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4
