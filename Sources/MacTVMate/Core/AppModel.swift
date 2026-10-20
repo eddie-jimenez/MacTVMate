@@ -47,7 +47,30 @@ final class AppModel: ObservableObject {
     @Published var screen: Screen = .guide {
         didSet { screenChanged(from: oldValue) }
     }
-    @Published var showSettings = false
+    @Published var showSettings = false {
+        didSet { if showSettings, !oldValue { settingsZone = .side; settingsForm.engaged = false } }
+    }
+
+    // Remote-style focus (see Navigation.swift)
+    @Published var zone: FocusZone = .main
+    @Published var railIndex = 1
+    @Published var settingsZone: FocusZone = .side
+    @Published var actionMenu: ActionMenu?
+    @Published var showControls = false
+    /// Recordings / My list.
+    let screenForm = FocusForm()
+    /// Movie and show detail sheets.
+    let sheetForm = FocusForm()
+    let settingsForm = FocusForm()
+    /// The player's control bar.
+    let controlsForm = FocusForm()
+    /// Closes the open detail sheet (Back on the remote).
+    var sheetBack: (() -> Void)?
+    /// The Movies/Shows browser handles its own arrows (categories + poster grid).
+    var browserKeys: ((NavKey) -> Bool)?
+    var controlsTimer: Timer?
+    private var returnHeld = false
+    private var holdFired = false
     /// Current interface scale (mirrors Theme.uiScale) and the display it was computed for.
     @Published private(set) var uiScale: CGFloat = 1
     @Published private(set) var displayInfo = ""
@@ -272,6 +295,9 @@ final class AppModel: ObservableObject {
     private func screenChanged(from old: Screen) {
         releaseTextFocus()
         guard old != screen else { return }
+        zone = .main
+        screenForm.engaged = false
+        if old == .player { hideControls() }
         if screen.isBrowser, case .live(let c)? = playing {
             // Like TiViMate, the live preview stops while browsing Movies/Shows.
             suspendedLive = c
@@ -429,14 +455,19 @@ final class AppModel: ObservableObject {
     // MARK: Keyboard
 
     private func installKeyMonitor() {
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .keyUp]) { [weak self] event in
             guard let self else { return event }
             return MainActor.assumeIsolated {
+                if event.type == .keyUp { return self.handleKeyUp(event) ? nil : event }
                 // Text fields get their own typing — but only where text fields are actually on screen.
                 // A search box from another screen can keep focus invisibly; on the guide/player that must not swallow arrows.
                 if let window = event.window, window.firstResponder is NSTextView {
-                    if self.textEntryOnScreen || window.attachedSheet != nil || NSApp.modalWindow != nil { return event }
+                    let fieldOnScreen = self.textEntryOnScreen || window.attachedSheet != nil || NSApp.modalWindow != nil
+                    // ↑ / ↓ / Esc leave a text field and carry on navigating (search overlay keeps its own list keys).
+                    let leaves = !self.showSearch && [126, 125, 53].contains(event.keyCode)
+                    if fieldOnScreen && !leaves { return event }
                     window.makeFirstResponder(nil)
+                    if leaves && event.keyCode == 53 { return nil }
                 }
                 return self.handleKey(event) ? nil : event
             }
@@ -456,20 +487,26 @@ final class AppModel: ObservableObject {
             NSApp.postEvent(ev, atStart: false)
         }
         let live = playing?.isLive ?? true
+        // Arrows / OK / Back go through the same navigation as the keyboard; text fields (search) still get real keys.
+        func navOrKey(_ k: NavKey, _ code: UInt16, _ chars: String) {
+            if let w = NSApp.keyWindow, w.firstResponder is NSTextView, showSearch || [.left, .right].contains(k) { key(code, chars); return }
+            if !nav(k) { key(code, chars) }
+        }
         switch a {
-        case .back: key(53, "\u{1b}")
-        case .ok: key(36, "\r")
-        case .up: key(126, "\u{F700}")
-        case .down: key(125, "\u{F701}")
-        case .left: key(123, "\u{F702}")
-        case .right: key(124, "\u{F703}")
+        case .back: navOrKey(.back, 53, "\u{1b}")
+        case .ok: navOrKey(.select, 36, "\r")
+        case .up: navOrKey(.up, 126, "\u{F700}")
+        case .down: navOrKey(.down, 125, "\u{F701}")
+        case .left: navOrKey(.left, 123, "\u{F702}")
+        case .right: navOrKey(.right, 124, "\u{F703}")
         case .home:
             // TiViMate's Home: back to the TV guide from anywhere.
-            showSearch = false; showSettings = false; showChannelList = false
+            showSearch = false; showSettings = false; showChannelList = false; actionMenu = nil
+            if screen == .player { hideControls() }
             showGuide()
         case .menu:
-            // Menu: from the player, the channel list; elsewhere, Settings.
-            if screen == .player, !showChannelList { openChannelList() } else { showSettings.toggle() }
+            // Menu: options for what's focused (player: the control bar). Settings live on the rail.
+            if !nav(.menu) { showSettings.toggle() }
         case .playPause: player.togglePause()
         case .play: if player.isPaused { player.togglePause() }
         case .pause: if !player.isPaused { player.togglePause() }
@@ -505,6 +542,10 @@ final class AppModel: ObservableObject {
         case "record": toggleRecording()
         case "last": playPrevious()
         case "guide": showSettings = false; showSearch = false; showGuide()
+        case "longOk": nav(.hold)
+        case "options": nav(.menu)
+        case "favourite": nav(.favourite)
+        case "recordFocused": nav(.record)
         case "digit": if let d = (value as? Int) ?? Int("\(value ?? "")") { enterDigit(d) }
         default: break
         }
@@ -607,11 +648,22 @@ final class AppModel: ObservableObject {
             if e.keyCode == 53 { showSearch = false; return true }
             return false
         }
-        if showSettings {
-            if e.keyCode == 53, !library.sources.isEmpty { showSettings = false; return true }
-            return false
+
+        // OK: a tap selects (on key-up); holding it opens the options for the focused item.
+        if e.keyCode == 36 || e.keyCode == 76 {
+            if e.isARepeat {
+                if returnHeld, !holdFired { holdFired = true; nav(.hold) }
+            } else {
+                returnHeld = true; holdFired = false
+            }
+            return true
         }
+        let navKeys: [UInt16: NavKey] = [126: .up, 125: .down, 123: .left, 124: .right, 53: .back]
+        if let k = navKeys[e.keyCode] { return nav(k) }
+        if actionMenu != nil { return true }
+        if showSettings { return false }
         if chars == "/" { openSearch(); return true }
+        if chars == "o" { return nav(.menu) }
 
         if let digit = Int(chars), chars.count == 1, !screen.isBrowser {
             enterDigit(digit)
@@ -620,8 +672,10 @@ final class AppModel: ObservableObject {
 
         switch screen {
         case .movies, .shows, .recordings, .myList:
-            if e.keyCode == 53 { screen = .guide; return true }
-            return false
+            switch chars {
+            case "f": return nav(.favourite)
+            default: return false
+            }
         case .guide:
             return handleGuideKey(e, chars)
         case .player:
@@ -629,21 +683,23 @@ final class AppModel: ObservableObject {
         }
     }
 
+    private func handleKeyUp(_ e: NSEvent) -> Bool {
+        guard e.keyCode == 36 || e.keyCode == 76, returnHeld else { return false }
+        returnHeld = false
+        if !holdFired { nav(.select) }
+        holdFired = false
+        return true
+    }
+
     private func handleGuideKey(_ e: NSEvent, _ chars: String) -> Bool {
         switch e.keyCode {
-        // ↑/↓ are channel up/down (44 → 45 / 44 → 43) unless set to follow the screen.
-        case 126: guideMove(rows: library.settings.guideArrowsChangeChannelNumber ? 1 : -1)   // up
-        case 125: guideMove(rows: library.settings.guideArrowsChangeChannelNumber ? -1 : 1)   // down
-        case 123: guideMove(programmes: -1)          // left
-        case 124: guideMove(programmes: 1)           // right
         case 116: guideMove(rows: -8)                // page up
         case 121: guideMove(rows: 8)                 // page down
-        case 36, 76: guideActivate()                 // return / enter
-        case 53, 51:                                 // esc / backspace
-            if playing != nil { screen = .player; flashInfoBar() }
+        case 51: nav(.back)                          // backspace
         default:
             switch chars {
-            case "f": if let ch = guideSelectedChannel { library.toggleFavourite(ch) }
+            case "f": nav(.favourite)
+            case "r": nav(.record)
             case "n": resetGuideToNow()
             case "g": if playing != nil { screen = .player }
             default: return false
@@ -660,7 +716,6 @@ final class AppModel: ObservableObject {
         case 125, 121: zap(-1)                       // down / page down
         case 123: if isCatchup { player.seek(relative: -30) } else { openChannelList() }
         case 124: if isCatchup { player.seek(relative: 30) } else { flashInfoBar() }
-        case 36, 76: openChannelList()
         case 53:                                     // esc: info bar, then full screen, then guide
             if showInfoBar { showInfoBar = false } else if isFullScreen { toggleFullScreen() } else { showGuide() }
         case 51: playPrevious()                      // backspace = last channel
@@ -682,8 +737,14 @@ final class AppModel: ObservableObject {
     }
 
     private func handleListKey(_ e: NSEvent) -> Bool {
+        if e.charactersIgnoringModifiers?.lowercased() == "f" { return nav(.favourite) }
+        if e.charactersIgnoringModifiers?.lowercased() == "r" { return nav(.record) }
+        return handleListKey(code: e.keyCode)
+    }
+
+    func handleListKey(code: UInt16) -> Bool {
         let groups = library.groups
-        switch e.keyCode {
+        switch code {
         case 126:
             if channelListFocusGroups { listGroupSelection = max(0, listGroupSelection - 1) }
             else { listSelection = max(0, listSelection - 1) }
@@ -707,12 +768,7 @@ final class AppModel: ObservableObject {
                 showChannelList = false
             }
         case 53, 51: showChannelList = false
-        default:
-            if e.charactersIgnoringModifiers?.lowercased() == "f", groupChannels.indices.contains(listSelection) {
-                library.toggleFavourite(groupChannels[listSelection])
-                return true
-            }
-            return false
+        default: return false
         }
         return true
     }

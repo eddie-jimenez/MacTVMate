@@ -27,14 +27,16 @@ struct Sidebar: View {
                 .foregroundStyle(Theme.accent)
                 .padding(.top, Theme.s(34)).padding(.bottom, Theme.s(20))
 
-            row(icon: "magnifyingglass", title: "Search", selected: model.showSearch) { model.openSearch() }
-            ForEach(items) { item in
-                row(icon: item.icon, title: item.id, selected: model.screen == item.screen && !model.showSearch && !model.showSettings) {
-                    if let s = item.screen { model.showSettings = false; model.screen = s }
+            row(0, icon: "magnifyingglass", title: "Search", selected: model.showSearch) { model.openSearch() }
+            ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
+                row(i + 1, icon: item.icon, title: item.id, selected: model.screen == item.screen && !model.showSearch && !model.showSettings) {
+                    model.activateRail(i + 1)
                 }
             }
             Spacer()
-            row(icon: "gearshape", title: "Settings", selected: model.showSettings) { model.showSettings.toggle() }
+            row(6, icon: "gearshape", title: "Settings", selected: model.showSettings) {
+                if model.showSettings { model.showSettings = false } else { model.activateRail(6) }
+            }
                 .padding(.bottom, Theme.s(16))
         }
         .padding(.horizontal, Theme.s(6))
@@ -43,7 +45,7 @@ struct Sidebar: View {
         .background(Theme.panel)
     }
 
-    private func row(icon: String, title: String, selected: Bool, action: @escaping () -> Void) -> some View {
+    private func row(_ index: Int, icon: String, title: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: Theme.s(4)) {
                 Image(systemName: icon).font(.system(size: Theme.uiScale * 18, weight: selected ? .semibold : .regular))
@@ -54,6 +56,7 @@ struct Sidebar: View {
             .background(selected ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 9))
             .foregroundStyle(selected ? Theme.focusText : Theme.text.opacity(0.8))
             .contentShape(Rectangle())
+            .focusRing(model.zone == .rail && model.railIndex == index && !model.showSettings, radius: 9)
         }
         .buttonStyle(.plain)
         .help(title)

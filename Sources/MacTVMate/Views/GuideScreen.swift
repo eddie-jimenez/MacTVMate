@@ -175,10 +175,12 @@ struct GroupColumn: View {
                         .padding(.horizontal, Theme.s(12)).padding(.vertical, Theme.s(9))
                         .background(sel ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 8))
                         .foregroundStyle(sel ? Theme.focusText : Theme.text.opacity(0.9))
+                        .focusRing(sel && model.zone == .side)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             model.selectedGroup = g.name
                             model.guideRow = 0
+                            model.zone = .side
                         }
                         .id(g.name)
                     }
@@ -186,6 +188,7 @@ struct GroupColumn: View {
                 .padding(.horizontal, Theme.s(10)).padding(.top, Theme.s(40))
             }
             .onAppear { proxy.scrollTo(model.selectedGroup, anchor: .center) }
+            .onChange(of: model.selectedGroup) { _, g in withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(g, anchor: .center) } }
         }
         .frame(width: Self.width)
         .background(Theme.bg)
@@ -333,7 +336,7 @@ struct GuideRow: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) { model.play(channel) }
-                .onTapGesture { model.guideRow = row; model.guideTime = model.now; model.play(channel, fullscreen: false) }
+                .onTapGesture { model.zone = .main; model.guideRow = row; model.guideTime = model.now; model.play(channel, fullscreen: false) }
                 FavouriteButton(channel: channel)
                     .font(.system(size: Theme.uiScale * 13 * fs))
                     .frame(width: Theme.s(22), height: layout.rowHeight)
@@ -355,7 +358,7 @@ struct GuideRow: View {
                     cell(title: channel.name, subtitle: "No information", x: 0, width: (end.timeIntervalSince(start)) * pxPerSec,
                          focused: selectedRow, live: true, fs: fs)
                         .onTapGesture(count: 2) { model.play(channel) }
-                        .onTapGesture { model.releaseTextFocus(); model.guideRow = row; model.guideTime = model.now; model.preview(channel) }
+                        .onTapGesture { model.releaseTextFocus(); model.zone = .main; model.guideRow = row; model.guideTime = model.now; model.preview(channel) }
                     // Time cursor: ←/→ on a row without listings moves in 30-minute steps; show where it is.
                     if selectedRow, model.guideTime >= start, model.guideTime < end {
                         let slotStart = AppModel.slotFloor(model.guideTime)
@@ -381,6 +384,7 @@ struct GuideRow: View {
                         }
                         .onTapGesture {
                             model.releaseTextFocus()
+                            model.zone = .main
                             model.guideRow = row
                             model.guideTime = max(p.start, start).addingTimeInterval(1)
                             // What's on now plays in the preview; past/future programmes are just selected.

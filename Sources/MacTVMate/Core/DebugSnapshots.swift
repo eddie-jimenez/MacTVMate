@@ -29,6 +29,58 @@ enum DebugSnapshots {
                 print("[snap] \(name) screen=\(model.screen) playing=\(model.playing?.channel.name ?? "-") idle=\(p.isIdle) buffering=\(p.isBuffering) tuning=\(p.tuning) blank=\(p.blankVideo) video=\(p.videoSize) err=\(p.errorMessage ?? "-") channels=\(model.library.channels.count) status=\(model.library.status ?? "-") libErr=\(model.library.error ?? "-")")
                 fflush(stdout)
             }
+            if ProcessInfo.processInfo.environment["MACTVMATE_NAV_TEST"] != nil {
+                // Walks every pane with remote keys, the way the Shield / iPhone remote does.
+                for _ in 0..<60 where model.library.channels.isEmpty { await wait(1) }
+                for _ in 0..<120 where model.library.epgLoadedAt == nil { await wait(1) }
+                model.showSettings = false
+                model.screen = .guide; model.selectedGroup = "US Movies"; model.guideRow = 2; model.guideTime = .now
+                await wait(3)
+                @MainActor func st(_ tag: String) {
+                    let f: (FocusForm) -> String = { "\($0.engaged ? "on" : "off") r\($0.spot.row)c\($0.spot.col)" }
+                    print("[nav] \(tag): screen=\(model.screen) zone=\(model.zone) rail=\(model.railIndex) group=\(model.selectedGroup) row=\(model.guideRow) settings=\(model.showSettings ? "\(model.settingsSection.rawValue)/\(model.settingsZone)" : "-") menu=\(model.actionMenu.map { "\($0.title) [\($0.actions.map(\.title).joined(separator: ", "))]" } ?? "-") controls=\(model.showControls) screenForm=\(f(model.screenForm)) sheet=\(f(model.sheetForm)) settingsForm=\(f(model.settingsForm)) controlsForm=\(f(model.controlsForm))")
+                    fflush(stdout)
+                }
+                @MainActor func key(_ a: RemoteControl.Action, _ n: Int = 1, _ pause: Double = 0.6) async {
+                    for _ in 0..<n { model.remoteAction(a); await wait(pause) }
+                }
+                st("start")
+                await key(.left); st("← guide edge → groups")
+                await key(.down, 2); st("↓↓ groups")
+                await key(.up, 2); st("↑↑ groups back")
+                await key(.right); st("→ back to grid")
+                model.nav(.hold); await wait(0.8); st("hold OK in guide"); snap("N1-guide-options")
+                await key(.back); st("back closes options")
+                await key(.left); await key(.left); st("← ← → rail")
+                await key(.down); st("↓ rail"); snap("N2-rail")
+                await key(.ok, 1, 3); st("OK → Movies")
+                await key(.down, 1, 0.8); await key(.right, 2); st("grid ↓ → →"); snap("N3-movies-grid")
+                model.nav(.hold); await wait(0.8); st("hold on poster")
+                await key(.back)
+                await key(.ok, 1, 2); st("OK → details sheet")
+                await key(.right); st("→ in sheet")
+                await key(.back, 1, 1.5); st("back closes sheet")
+                await key(.up, 3); st("↑ to header")
+                await key(.down); await key(.left, 3); st("← to categories"); snap("N4-movies-categories")
+                await key(.down); st("↓ category")
+                await key(.left); await key(.down, 2); await key(.ok, 1, 2); st("rail → Recordings"); snap("N5-recordings")
+                await key(.down); st("↓ recordings")
+                await key(.left); await key(.down); await key(.ok, 1, 2); st("rail → My list"); snap("N6-mylist")
+                await key(.right); st("→ my list")
+                await key(.left, 3); await key(.down); await key(.ok, 1, 1.5); st("rail → Settings")
+                await key(.down, 4); st("↓×4 sections")
+                await key(.right); st("→ into Appearance")
+                await key(.down, 3); st("↓↓↓"); snap("N7-settings")
+                await key(.back); st("back → sections")
+                await key(.back); st("back closes settings")
+                await key(.home, 1, 1.5); st("Home")
+                if let ch = model.groupChannels.first { model.play(ch); await wait(4) }
+                st("playing full screen")
+                await key(.menu, 1, 1); st("Menu → controls")
+                await key(.right, 2); st("→ → controls"); snap("N8-player-controls")
+                await key(.back); st("back hides controls")
+                print("[snap] done"); fflush(stdout); return
+            }
             if ProcessInfo.processInfo.environment["MACTVMATE_KEY_TEST"] != nil {
                 for _ in 0..<60 where model.library.channels.isEmpty { await wait(1) }
                 for _ in 0..<120 where model.library.epgLoadedAt == nil { await wait(1) }

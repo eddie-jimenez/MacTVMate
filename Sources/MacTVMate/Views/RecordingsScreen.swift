@@ -9,22 +9,25 @@ struct RecordingsScreen: View {
         let recs = model.library.recordings
         let upcoming = recs.filter { $0.status == .scheduled || $0.status == .recording }.sorted { $0.start < $1.start }
         let finished = recs.filter { $0.status != .scheduled && $0.status != .recording }.sorted { $0.start > $1.start }
-        ScrollView {
+        let form = model.screenForm
+        FocusScroller(form: form) { _ in ScrollView {
             VStack(alignment: .leading, spacing: Theme.s(24)) {
                 HStack {
                     Text("Recordings").font(Theme.f(.largeTitle).weight(.semibold))
                     Spacer()
                     Button { NSWorkspace.shared.open(Recorder.folder) } label: { Label("Show in Finder", systemImage: "folder") }
+                        .focusSpot(form, row: 0) { NSWorkspace.shared.open(Recorder.folder) }
                 }
                 Text("Pick a programme in the guide and choose Record. Recordings run while MacTVMate is open, use a second connection, and are saved as .ts files in ~/Movies/MacTVMate (2 min before / 5 min after padding).")
                     .font(Theme.f(.callout)).foregroundStyle(Theme.dim)
 
-                section("Scheduled & recording", upcoming, empty: "Nothing scheduled.")
-                section("Recorded", finished, empty: "No recordings yet.")
+                section("Scheduled & recording", upcoming, empty: "Nothing scheduled.", firstRow: 1)
+                section("Recorded", finished, empty: "No recordings yet.", firstRow: 1 + upcoming.count)
 
                 if !model.library.reminders.isEmpty {
                     Text("Reminders").font(Theme.f(.title3).weight(.semibold))
-                    ForEach(model.library.reminders.sorted { $0.start < $1.start }) { r in
+                    let reminderRow = 1 + upcoming.count + finished.count
+                    ForEach(Array(model.library.reminders.sorted { $0.start < $1.start }.enumerated()), id: \.element.id) { i, r in
                         HStack {
                             Image(systemName: "bell.fill").foregroundStyle(Theme.accent)
                             VStack(alignment: .leading) {
@@ -36,21 +39,54 @@ struct RecordingsScreen: View {
                                 .buttonStyle(.borderless)
                         }
                         .padding(Theme.s(10)).background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
+                        .focusSpot(form, row: reminderRow + i, owner: r.id, options: {
+                            [MenuAction(title: "Delete reminder", icon: "trash", role: .destructive) { [model] in
+                                model.library.reminders.removeAll { $0.id == r.id } }]
+                        }) { [model] in model.library.reminders.removeAll { $0.id == r.id } }
                     }
                 }
             }
             .padding(Theme.s(28))
-        }
+        } }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.bg)
+        .onAppear { DispatchQueue.main.async { model.screenForm.engage(reset: true) } }
     }
 
-    @ViewBuilder private func section(_ title: String, _ items: [Recording], empty: String) -> some View {
+    @ViewBuilder private func section(_ title: String, _ items: [Recording], empty: String, firstRow: Int) -> some View {
         VStack(alignment: .leading, spacing: Theme.s(8)) {
             Text(title).font(Theme.f(.title3).weight(.semibold))
             if items.isEmpty { Text(empty).foregroundStyle(Theme.faint) }
-            ForEach(items) { r in row(r) }
+            ForEach(Array(items.enumerated()), id: \.element.id) { i, r in
+                row(r).focusSpot(model.screenForm, row: firstRow + i, owner: r.id, options: { options(r) }) { activate(r) }
+            }
         }
+    }
+
+    /// OK: play a finished recording; on a scheduled one, open its options.
+    private func activate(_ r: Recording) {
+        if r.status == .done, r.file != nil { play(r) } else { model.showOptions(r.title, subtitle: r.channelName, options(r)) }
+    }
+
+    private func play(_ r: Recording) {
+        guard let f = r.file else { return }
+        model.playVOD(title: r.title, url: URL(fileURLWithPath: f), poster: nil, key: "recording|\(r.id)", group: "Recordings")
+    }
+
+    private func options(_ r: Recording) -> [MenuAction] {
+        var a: [MenuAction] = []
+        if r.status == .done, let f = r.file {
+            a.append(MenuAction(title: "Play", icon: "play.fill") { play(r) })
+            a.append(MenuAction(title: "Show in Finder", icon: "folder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: f)]) })
+        }
+        if r.status == .scheduled || r.status == .recording {
+            a.append(MenuAction(title: r.status == .recording ? "Stop recording" : "Cancel recording", icon: "stop.circle", role: .destructive) { [model] in
+                model.recorder.cancel(r)
+            })
+        } else {
+            a.append(MenuAction(title: "Delete", icon: "trash", role: .destructive) { [model] in model.recorder.delete(r) })
+        }
+        return a
     }
 
     private func row(_ r: Recording) -> some View {

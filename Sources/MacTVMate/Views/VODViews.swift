@@ -9,25 +9,28 @@ struct VODBrowser: View {
     @State private var query = ""
     @State private var sort = 0          // 0 recently added, 1 A–Z, 2 rating
     @State private var selected: VODItem?
+    // Remote focus: the poster grid index, the header (0 sort, 1 search) when focused, and the grid's column count.
+    @State private var gridFocus = 0
+    @State private var header: Int?
+    @State private var columns = 5
+    @FocusState private var searchFocused: Bool
 
     var body: some View {
         let store = model.vod
+        let cats = categoryList
         HStack(spacing: Theme.s(0)) {
             // Categories
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
-                    categoryRow("__all", "All \(kind == .movies ? "movies" : "shows")", store.items(kind).count)
-                    categoryRow("__mylist", "My list", store.items(kind).filter { model.library.isInMyList($0.id) }.count)
-                    if kind == .movies || kind == .series {
-                        categoryRow("__continue", "Continue watching", continueItems.count)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
+                        ForEach(Array(cats.enumerated()), id: \.element.id) { i, c in
+                            categoryRow(c.id, c.name, c.count)
+                            if i == 2 { Divider().padding(.vertical, Theme.s(6)) }
+                        }
                     }
-                    Divider().padding(.vertical, Theme.s(6))
-                    let counts = categoryCounts
-                    ForEach(store.categories(kind).filter { (counts[$0.id] ?? 0) > 0 }) { c in
-                        categoryRow(c.id, c.name, counts[c.id])
-                    }
+                    .padding(Theme.s(10))
                 }
-                .padding(Theme.s(10))
+                .onChange(of: category) { _, c in withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(c, anchor: .center) } }
             }
             .frame(width: Theme.s(240))
             .background(Theme.panel)
@@ -40,12 +43,16 @@ struct VODBrowser: View {
                         Text("Recently added").tag(0); Text("A–Z").tag(1); Text("IMDb rating").tag(2); Text("Popular").tag(3)
                     }
                     .pickerStyle(.segmented).labelsHidden().frame(width: Theme.s(400))
+                    .focusRing(model.zone == .main && header == 0)
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(Theme.dim)
                         TextField("Search \(kind == .movies ? "movies" : "shows")", text: $query).textFieldStyle(.plain)
+                            .focused($searchFocused)
+                            .onSubmit { searchFocused = false; header = nil; gridFocus = 0 }
                     }
                     .padding(Theme.s(8)).frame(width: Theme.s(240))
                     .background(Theme.cell, in: RoundedRectangle(cornerRadius: 8))
+                    .focusRing(model.zone == .main && header == 1)
                 }
 
                 if !store.isAvailable {
@@ -58,14 +65,28 @@ struct VODBrowser: View {
                 } else {
                     let items = filtered
                     Text("\(items.count) titles").font(Theme.f(.callout)).foregroundStyle(Theme.dim)
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: Theme.s(150), maximum: Theme.s(190)), spacing: Theme.s(18), alignment: .top)], alignment: .leading, spacing: Theme.s(22)) {
-                            ForEach(items) { item in
-                                PosterCard(item: item, progress: progress(item), imdb: store.imdb[item.id])
-                                    .onTapGesture { selected = item }
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Theme.s(18), alignment: .top), count: columns),
+                                      alignment: .leading, spacing: Theme.s(22)) {
+                                ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
+                                    PosterCard(item: item, progress: progress(item), imdb: store.imdb[item.id],
+                                               focused: model.zone == .main && header == nil && i == gridFocus && selected == nil)
+                                        .onTapGesture { gridFocus = i; model.zone = .main; header = nil; selected = item }
+                                }
                             }
+                            .padding(.horizontal, Theme.s(4)).padding(.top, Theme.s(4))
+                            .padding(.bottom, Theme.s(30))
                         }
-                        .padding(.bottom, Theme.s(30))
+                        .background(GeometryReader { g in
+                            Color.clear
+                                .onAppear { columns = Self.columns(for: g.size.width) }
+                                .onChange(of: g.size.width) { _, w in columns = Self.columns(for: w) }
+                        })
+                        .onChange(of: gridFocus) { _, i in
+                            guard items.indices.contains(i) else { return }
+                            withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(items[i].id, anchor: .center) }
+                        }
                     }
                 }
             }
@@ -73,11 +94,98 @@ struct VODBrowser: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .background(Theme.bg)
+        .onAppear {
+            model.browserKeys = { key in handle(key) }
+            DispatchQueue.main.async { searchFocused = false; model.releaseTextFocus() }
+        }
+        .onDisappear { model.browserKeys = nil }
+        .onChange(of: category) { _, _ in gridFocus = 0 }
+        .onChange(of: sort) { _, _ in gridFocus = 0 }
+        .onChange(of: query) { _, _ in gridFocus = 0 }
         .task(id: kind) { await model.vod.ensureLoaded(kind) }
         .task(id: model.meta.imdbReady) { if model.meta.imdbReady { await model.vod.matchIMDb(kind) } }
         .sheet(item: $selected) { item in
-            if item.kind == .movies { MovieDetailView(item: item) } else { SeriesDetailView(item: item) }
+            if item.kind == .movies { MovieDetailView(item: item, close: { selected = nil }) }
+            else { SeriesDetailView(item: item, close: { selected = nil }) }
         }
+    }
+
+    static func columns(for width: CGFloat) -> Int {
+        max(1, Int((width + Theme.s(18)) / (Theme.s(150) + Theme.s(18))))
+    }
+
+    private struct CategoryEntry: Identifiable { let id: String; let name: String; let count: Int? }
+
+    /// All, My list, Continue watching, then the provider's categories that have titles.
+    private var categoryList: [CategoryEntry] {
+        let store = model.vod
+        let counts = categoryCounts
+        var list = [CategoryEntry(id: "__all", name: "All \(kind == .movies ? "movies" : "shows")", count: store.items(kind).count),
+                    CategoryEntry(id: "__mylist", name: "My list", count: store.items(kind).filter { model.library.isInMyList($0.id) }.count),
+                    CategoryEntry(id: "__continue", name: "Continue watching", count: continueItems.count)]
+        list += store.categories(kind).filter { (counts[$0.id] ?? 0) > 0 }.map { CategoryEntry(id: $0.id, name: $0.name, count: counts[$0.id]) }
+        return list
+    }
+
+    /// Remote / arrow keys: categories (side) ⇄ header + poster grid (main).
+    private func handle(_ k: NavKey) -> Bool {
+        if model.zone == .side {
+            let cats = categoryList
+            let i = cats.firstIndex { $0.id == category } ?? 0
+            switch k {
+            case .up: category = cats[max(0, i - 1)].id
+            case .down: category = cats[min(cats.count - 1, i + 1)].id
+            case .right, .select: model.zone = .main; header = nil
+            case .left: model.enterRail()
+            default: return false
+            }
+            return true
+        }
+        if let h = header {
+            switch k {
+            case .left: if h == 1 { header = 0 } else { model.zone = .side; header = nil }
+            case .right: header = 1
+            case .down: header = nil
+            case .select: if h == 0 { sort = (sort + 1) % 4 } else { searchFocused = true }
+            case .up: break
+            default: return false
+            }
+            return true
+        }
+        let items = filtered
+        let n = items.count, cols = max(1, columns)
+        guard n > 0 else {
+            if k == .left { model.zone = .side; return true }
+            if k == .up { header = 0; return true }
+            return false
+        }
+        gridFocus = min(gridFocus, n - 1)
+        let item = items[gridFocus]
+        switch k {
+        case .up: if gridFocus < cols { header = 0 } else { gridFocus -= cols }
+        case .down: if gridFocus + cols < n { gridFocus += cols } else if gridFocus / cols < (n - 1) / cols { gridFocus = n - 1 }
+        case .left: if gridFocus % cols == 0 { model.zone = .side } else { gridFocus -= 1 }
+        case .right: if gridFocus % cols < cols - 1, gridFocus + 1 < n { gridFocus += 1 }
+        case .select: selected = item
+        case .favourite: model.library.toggleMyList(item.id)
+        case .hold, .menu: model.showOptions(item.name, subtitle: item.year, options(item))
+        default: return false
+        }
+        return true
+    }
+
+    private func options(_ item: VODItem) -> [MenuAction] {
+        var a: [MenuAction] = []
+        if item.kind == .movies {
+            let resume = model.library.positions[item.id] != nil
+            a.append(MenuAction(title: resume ? "Resume" : "Play", icon: "play.fill") { [model] in model.remotePlayMovie(id: item.id) })
+        }
+        a.append(MenuAction(title: item.kind == .movies ? "Details" : "Episodes", icon: "info.circle") { selected = item })
+        let inList = model.library.isInMyList(item.id)
+        a.append(MenuAction(title: inList ? "Remove from My list" : "Add to My list", icon: inList ? "bookmark.slash" : "bookmark") { [model] in
+            model.library.toggleMyList(item.id)
+        })
+        return a
     }
 
     private var categoryCounts: [String: Int] {
@@ -135,8 +243,10 @@ struct VODBrowser: View {
         .padding(.horizontal, Theme.s(10)).padding(.vertical, Theme.s(7))
         .background(sel ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 6))
         .foregroundStyle(sel ? Theme.focusText : Theme.text)
+        .focusRing(sel && model.zone == .side, radius: 6)
         .contentShape(Rectangle())
-        .onTapGesture { category = id }
+        .id(id)
+        .onTapGesture { category = id; model.zone = .side }
     }
 
     private func placeholder(_ text: String, _ icon: String) -> some View {
@@ -153,6 +263,7 @@ struct PosterCard: View {
     let item: VODItem
     let progress: Double?
     var imdb: IMDbTitle? = nil
+    var focused = false
     @State private var hover = false
 
     var body: some View {
@@ -173,7 +284,7 @@ struct PosterCard: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(RoundedRectangle(cornerRadius: 8).stroke(hover ? Theme.accent : .clear, lineWidth: 3))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(hover || focused ? Theme.accent : .clear, lineWidth: focused ? 4 : 3))
                 .overlay(alignment: .topTrailing) {
                     if model.library.isInMyList(item.id) {
                         Image(systemName: "bookmark.fill").foregroundStyle(Theme.accent).padding(Theme.s(6))
@@ -188,8 +299,9 @@ struct PosterCard: View {
                 Text([year, genres].compactMap { $0 }.joined(separator: " · ")).font(Theme.f(.caption)).foregroundStyle(Theme.dim).lineLimit(1)
             }
         }
-        .scaleEffect(hover ? 1.03 : 1)
+        .scaleEffect(focused ? 1.06 : hover ? 1.03 : 1)
         .animation(.easeOut(duration: 0.12), value: hover)
+        .animation(.easeOut(duration: 0.12), value: focused)
         .onHover { hover = $0 }
         .contentShape(Rectangle())
     }
@@ -215,11 +327,13 @@ struct MovieDetailView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
     let item: VODItem
+    /// Set by the presenting screen; the remote's Back uses it (the environment's dismiss isn't reliable outside body).
+    var close: (() -> Void)? = nil
     @State private var details: MovieDetails?
 
     var body: some View {
         let resume = model.library.positions[item.id]
-        DetailLayout(item: item, backdrop: details?.backdrop, onClose: { dismiss() }) {
+        DetailLayout(item: item, backdrop: details?.backdrop, form: model.sheetForm, onClose: { dismiss() }) {
             VStack(alignment: .leading, spacing: Theme.s(10)) {
                 Text(item.name).font(Theme.f(.largeTitle).weight(.bold))
                 HStack(spacing: Theme.s(10)) {
@@ -231,16 +345,21 @@ struct MovieDetailView: View {
                 .foregroundStyle(Theme.dim)
                 if let imdb = movieIMDb { IMDbBadge(title: imdb) }
                 HStack(spacing: Theme.s(12)) {
+                    let form = model.sheetForm
                     Button {
                         play()
                     } label: { Label(resume != nil ? "Resume \(fmt(resume!))" : "Play", systemImage: "play.fill").padding(.horizontal, Theme.s(6)) }
                     .controlSize(Theme.control(.large)).buttonStyle(.borderedProminent).tint(Theme.accent)
+                    .focusSpot(form, row: 0, col: 0) { play() }
                     if resume != nil {
                         Button("Play from start") { model.library.positions[item.id] = nil; play() }.controlSize(Theme.control(.large))
+                            .focusSpot(form, row: 0, col: 1) { model.library.positions[item.id] = nil; play() }
                     }
                     MyListButton(key: item.id)
+                        .focusSpot(form, row: 0, col: 2) { model.library.toggleMyList(item.id) }
                     if let t = details?.trailer, !t.isEmpty, let url = URL(string: t.hasPrefix("http") ? t : "https://www.youtube.com/watch?v=\(t)") {
                         Button { NSWorkspace.shared.open(url) } label: { Label("Trailer", systemImage: "play.rectangle") }.controlSize(Theme.control(.large))
+                            .focusSpot(form, row: 0, col: 3) { NSWorkspace.shared.open(url) }
                     }
                 }
                 .padding(.vertical, Theme.s(6))
@@ -251,6 +370,7 @@ struct MovieDetailView: View {
             }
         }
         .task { details = await model.vod.details(movie: item) }
+        .remoteSheet(model) { if let close { close() } else { dismiss() } }
     }
 
     private var movieIMDb: IMDbTitle? {
@@ -270,11 +390,12 @@ struct SeriesDetailView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
     let item: VODItem
+    var close: (() -> Void)? = nil
     @State private var details: SeriesDetails?
     @State private var season = 1
 
     var body: some View {
-        DetailLayout(item: item, backdrop: details?.backdrop, onClose: { dismiss() }) {
+        DetailLayout(item: item, backdrop: details?.backdrop, form: model.sheetForm, onClose: { dismiss() }) {
             VStack(alignment: .leading, spacing: Theme.s(10)) {
                 Text(item.name).font(Theme.f(.largeTitle).weight(.bold))
                 HStack(spacing: Theme.s(10)) {
@@ -291,8 +412,10 @@ struct SeriesDetailView: View {
                                 .padding(.horizontal, Theme.s(6))
                         }
                         .controlSize(Theme.control(.large)).buttonStyle(.borderedProminent).tint(Theme.accent)
+                        .focusSpot(model.sheetForm, row: 0, col: 0) { play(next) }
                     }
                     MyListButton(key: item.id)
+                        .focusSpot(model.sheetForm, row: 0, col: 1) { model.library.toggleMyList(item.id) }
                 }
                 .padding(.vertical, Theme.s(6))
                 if let p = details?.plot ?? item.plot { Text(p).foregroundStyle(Theme.text.opacity(0.85)).lineLimit(5) }
@@ -301,9 +424,12 @@ struct SeriesDetailView: View {
                     Picker("Season", selection: $season) {
                         ForEach(seasons.keys.sorted(), id: \.self) { Text("Season \($0)").tag($0) }
                     }
-                    .frame(maxWidth: Theme.s(220))
+                    .frame(maxWidth: Theme.s(220), alignment: .leading)
+                    .focusChoice(model.sheetForm, row: 1, $season, seasons.keys.sorted())
                     VStack(spacing: Theme.s(2)) {
-                        ForEach(seasons[season] ?? []) { ep in episodeRow(ep) }
+                        ForEach(Array((seasons[season] ?? []).enumerated()), id: \.element.id) { i, ep in
+                            episodeRow(ep).focusSpot(model.sheetForm, row: 2 + i, owner: "ep\(i)") { play(ep) }
+                        }
                     }
                 } else if details == nil {
                     ProgressView().controlSize(Theme.control(.small))
@@ -315,7 +441,9 @@ struct SeriesDetailView: View {
         .task {
             details = await model.vod.details(series: item)
             if let first = nextEpisode?.season ?? details?.seasons.keys.sorted().first { season = first }
+            DispatchQueue.main.async { model.sheetForm.engage(reset: true) }
         }
+        .remoteSheet(model) { if let close { close() } else { dismiss() } }
     }
 
     /// First episode with a saved position, else the episode after the last one watched, else S1E1.
@@ -363,6 +491,7 @@ struct SeriesDetailView: View {
 struct DetailLayout<Content: View>: View {
     let item: VODItem
     let backdrop: URL?
+    @ObservedObject var form: FocusForm
     let onClose: () -> Void
     @ViewBuilder let content: Content
 
@@ -379,7 +508,9 @@ struct DetailLayout<Content: View>: View {
                     if let i = p.image { i.resizable().aspectRatio(contentMode: .fit) } else { Theme.cell }
                 }
                 .frame(width: Theme.s(210)).clipShape(RoundedRectangle(cornerRadius: 10)).shadow(radius: 20)
-                ScrollView { content.frame(maxWidth: .infinity, alignment: .leading) }
+                FocusScroller(form: form) { _ in
+                    ScrollView { content.frame(maxWidth: .infinity, alignment: .leading).padding(Theme.s(4)) }
+                }
             }
             .padding(Theme.s(30))
 
@@ -414,35 +545,65 @@ struct MyListScreen: View {
         let movies = model.vod.movies.filter { model.library.isInMyList($0.id) }
         let shows = model.vod.series.filter { model.library.isInMyList($0.id) }
         let favs = model.library.channels(in: ChannelGroup.favourites)
-        ScrollView {
+        let form = model.screenForm
+        FocusScroller(form: form) { _ in ScrollView {
             VStack(alignment: .leading, spacing: Theme.s(24)) {
                 Text("My list").font(Theme.f(.largeTitle).weight(.semibold))
                 shelf("Favourite channels", empty: "Star channels in the guide or channel list (☆ or F).") {
-                    ForEach(favs) { c in
+                    ForEach(Array(favs.enumerated()), id: \.element.id) { i, c in
                         VStack(spacing: Theme.s(6)) {
                             ChannelLogo(url: c.logo, size: 50).frame(width: Theme.s(140), height: Theme.s(80))
                                 .background(Theme.cell, in: RoundedRectangle(cornerRadius: 8))
                             Text(c.name).font(Theme.f(.caption)).lineLimit(1).frame(width: Theme.s(140))
                             Text(model.library.programme(for: c, at: model.now)?.title ?? "").font(Theme.f(.caption2)).foregroundStyle(Theme.dim).lineLimit(1).frame(width: Theme.s(140))
                         }
+                        .padding(Theme.s(4))
                         .onTapGesture { model.play(c) }
+                        .focusSpot(form, row: 0, col: i, owner: "fav" + c.id, options: {
+                            let p = model.library.programme(for: c, at: model.now)
+                            return model.channelOptions(c, p)
+                        }) { model.play(c) }
                     }
                 }
                 shelf("Movies", empty: "Add movies with the My list button.") {
-                    ForEach(movies) { m in PosterCard(item: m, progress: nil, imdb: model.vod.imdb[m.id]).frame(width: Theme.s(150)).onTapGesture { selected = m } }
+                    ForEach(Array(movies.enumerated()), id: \.element.id) { i, m in
+                        PosterCard(item: m, progress: nil, imdb: model.vod.imdb[m.id]).frame(width: Theme.s(150)).padding(Theme.s(4))
+                            .onTapGesture { selected = m }
+                            .focusSpot(form, row: 1, col: i, owner: m.id, options: { listOptions(m) }) { selected = m }
+                    }
                 }
                 shelf("Shows", empty: "Add shows with the My list button.") {
-                    ForEach(shows) { s in PosterCard(item: s, progress: nil, imdb: model.vod.imdb[s.id]).frame(width: Theme.s(150)).onTapGesture { selected = s } }
+                    ForEach(Array(shows.enumerated()), id: \.element.id) { i, s in
+                        PosterCard(item: s, progress: nil, imdb: model.vod.imdb[s.id]).frame(width: Theme.s(150)).padding(Theme.s(4))
+                            .onTapGesture { selected = s }
+                            .focusSpot(form, row: 2, col: i, owner: s.id, options: { listOptions(s) }) { selected = s }
+                    }
                 }
             }
             .padding(Theme.s(28))
-        }
+        } }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.bg)
+        .onAppear { DispatchQueue.main.async { model.screenForm.engage(reset: true) } }
         .task { await model.vod.ensureLoaded(.movies); await model.vod.ensureLoaded(.series) }
         .sheet(item: $selected) { item in
-            if item.kind == .movies { MovieDetailView(item: item) } else { SeriesDetailView(item: item) }
+            if item.kind == .movies { MovieDetailView(item: item, close: { selected = nil }) }
+            else { SeriesDetailView(item: item, close: { selected = nil }) }
         }
+    }
+
+    private func listOptions(_ item: VODItem) -> [MenuAction] {
+        var a: [MenuAction] = []
+        if item.kind == .movies {
+            a.append(MenuAction(title: model.library.positions[item.id] != nil ? "Resume" : "Play", icon: "play.fill") { [model] in
+                model.remotePlayMovie(id: item.id)
+            })
+        }
+        a.append(MenuAction(title: item.kind == .movies ? "Details" : "Episodes", icon: "info.circle") { selected = item })
+        a.append(MenuAction(title: "Remove from My list", icon: "bookmark.slash", role: .destructive) { [model] in
+            model.library.toggleMyList(item.id)
+        })
+        return a
     }
 
     private func shelf<Content: View>(_ title: String, empty: String, @ViewBuilder content: () -> Content) -> some View {
@@ -471,4 +632,18 @@ struct MyListScreen: View {
 private func fmt(_ t: Double) -> String {
     let s = Int(t)
     return s >= 3600 ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String(format: "%d:%02d", s / 60, s % 60)
+}
+
+extension View {
+    /// Detail sheets: arrows move between their buttons/episodes, Back closes.
+    func remoteSheet(_ model: AppModel, close: @escaping () -> Void) -> some View {
+        onAppear {
+            model.sheetBack = close
+            DispatchQueue.main.async { model.sheetForm.engage(reset: true) }
+        }
+        .onDisappear {
+            model.sheetForm.clear()
+            model.sheetBack = nil
+        }
+    }
 }

@@ -53,6 +53,10 @@ struct RootView: View {
                     SearchOverlay()
                 }
 
+                if let menu = model.actionMenu {
+                    ActionMenuView(menu: menu)
+                }
+
                 if let r = model.recorder.dueReminder {
                     ReminderBanner(reminder: r)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

@@ -34,12 +34,14 @@ struct PlayerOverlay: View {
                     .transition(.move(edge: .leading))
             }
 
-            if (model.showInfoBar || hovering) && !model.showChannelList {
-                VStack {
+            if (model.showInfoBar || hovering || model.showControls) && !model.showChannelList {
+                VStack(spacing: Theme.s(12)) {
                     TopControls(player: player).padding(Theme.s(16))
                     Spacer()
-                    InfoBar(player: player).padding(Theme.s(20))
+                    InfoBar(player: player)
+                    if model.showControls { ControlsBar(player: player, form: model.controlsForm) }
                 }
+                .padding(.bottom, Theme.s(20))
                 .transition(.opacity)
             }
 
@@ -350,5 +352,86 @@ struct ScrubBar: View {
     static func fmt(_ t: Double) -> String {
         let s = Int(t)
         return s >= 3600 ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String(format: "%d:%02d", s / 60, s % 60)
+    }
+}
+
+/// Remote-friendly playback controls (Menu on live TV, OK on movies and catch-up). ← → move, OK presses.
+struct ControlsBar: View {
+    @EnvironmentObject var model: AppModel
+    @ObservedObject var player: MPVController
+    @ObservedObject var form: FocusForm
+
+    private struct Item: Identifiable {
+        let id: String
+        let title: String
+        let icon: String
+        var tint: Color? = nil
+        let run: () -> Void
+    }
+
+    var body: some View {
+        let items = self.items
+        HStack(spacing: Theme.s(10)) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
+                VStack(spacing: Theme.s(6)) {
+                    Image(systemName: item.icon).font(.system(size: Theme.uiScale * 22, weight: .semibold))
+                        .foregroundStyle(item.tint ?? Theme.text)
+                    Text(item.title).font(Theme.f(.caption)).lineLimit(1)
+                }
+                .frame(width: Theme.s(96), height: Theme.s(70))
+                .background(form.engaged && form.spot.col == i ? Theme.accent.opacity(0.35) : Color.black.opacity(0.55),
+                            in: RoundedRectangle(cornerRadius: 12))
+                .contentShape(Rectangle())
+                .onTapGesture { model.pokeControls(); item.run() }
+                .focusSpot(form, row: 0, col: i, owner: item.id, radius: 12) { item.run() }
+            }
+        }
+        .padding(Theme.s(10))
+        .background(.black.opacity(0.4), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var items: [Item] {
+        guard let target = model.playing else { return [] }
+        var list: [Item] = []
+        if target.isSeekable {
+            list.append(Item(id: "back", title: "−30 s", icon: "gobackward.30") { player.seek(relative: -30) })
+            list.append(Item(id: "pause", title: player.isPaused ? "Play" : "Pause", icon: player.isPaused ? "play.fill" : "pause.fill") { player.togglePause() })
+            list.append(Item(id: "fwd", title: "+30 s", icon: "goforward.30") { player.seek(relative: 30) })
+            list.append(Item(id: "start", title: "Start over", icon: "backward.end.fill") { player.seek(absolute: 0) })
+        } else {
+            let ch = target.channel
+            let fav = model.library.isFavourite(ch)
+            list.append(Item(id: "channels", title: "Channels", icon: "list.number") { model.hideControls(); model.openChannelList() })
+            list.append(Item(id: "pause", title: player.isPaused ? "Play" : "Pause", icon: player.isPaused ? "play.fill" : "pause.fill") { player.togglePause() })
+            list.append(Item(id: "fav", title: fav ? "Favourite" : "Add favourite", icon: fav ? "star.fill" : "star", tint: fav ? .yellow : nil) {
+                model.library.toggleFavourite(ch)
+            })
+            list.append(Item(id: "rec", title: player.isRecording ? "Stop rec" : "Record", icon: player.isRecording ? "stop.circle.fill" : "record.circle",
+                             tint: player.isRecording ? Theme.live : nil) { model.toggleRecording() })
+            list.append(Item(id: "last", title: "Last channel", icon: "arrow.uturn.backward") { model.playPrevious() })
+        }
+        list.append(Item(id: "tracks", title: "Audio & subs", icon: "captions.bubble") { showTracks() })
+        list.append(Item(id: "mute", title: player.isMuted ? "Unmute" : "Mute", icon: player.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") {
+            player.isMuted.toggle()
+        })
+        list.append(Item(id: "guide", title: "Guide", icon: "list.bullet.rectangle") { model.hideControls(); model.showGuide() })
+        list.append(Item(id: "fs", title: model.isFullScreen ? "Exit full" : "Full screen",
+                         icon: model.isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right") {
+            model.toggleFullScreen()
+        })
+        return list
+    }
+
+    private func showTracks() {
+        var a: [MenuAction] = player.audioTracks.map { t in
+            MenuAction(title: (t.selected ? "✓ " : "") + "Audio: " + t.title, icon: "speaker.wave.2") { player.selectAudio(t.id) }
+        }
+        a.append(MenuAction(title: (player.subtitleTracks.contains { $0.selected } ? "" : "✓ ") + "Subtitles off", icon: "captions.bubble") {
+            player.selectSubtitle(nil)
+        })
+        a += player.subtitleTracks.map { t in
+            MenuAction(title: (t.selected ? "✓ " : "") + "Subtitles: " + t.title, icon: "captions.bubble.fill") { player.selectSubtitle(t.id) }
+        }
+        model.showOptions("Audio & subtitles", a)
     }
 }

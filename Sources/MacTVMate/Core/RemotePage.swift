@@ -151,12 +151,12 @@ enum RemotePage {
       <div class="row">
         <button class="b sm" data-a="back">↩<small>Back</small></button>
         <button class="b sm" data-a="home">⌂<small>Guide</small></button>
-        <button class="b sm" data-a="menu">≡<small>Menu</small></button>
+        <button class="b sm" data-a="menu">≡<small>Options</small></button>
       </div>
       <div class="pad">
         <button class="u" data-a="up" data-repeat>▲</button>
         <button class="l" data-a="left" data-repeat>◀</button>
-        <button class="ok" data-a="ok">OK</button>
+        <button class="ok" data-a="ok" data-hold="longOk">OK</button>
         <button class="r" data-a="right" data-repeat>▶</button>
         <button class="d" data-a="down" data-repeat>▼</button>
       </div>
@@ -172,13 +172,15 @@ enum RemotePage {
         <button class="b tool" data-a="seekBack">⏪<small>-30s</small></button>
         <button class="b tool" data-a="last">⇄<small>Last</small></button>
         <button class="b tool" data-a="info">ⓘ<small>Info</small></button>
-        <button class="b tool rec" data-a="record" id="rec">⏺<small>Rec</small></button>
+        <button class="b tool rec" data-a="recordFocused" id="rec">⏺<small>Rec</small></button>
         <button class="b tool" data-a="seekFwd">⏩<small>+30s</small></button>
       </div>
-      <div class="tools" style="grid-template-columns:2fr 1fr">
-        <button class="b tool" data-a="fullscreen">⛶<small>Full screen on the Mac</small></button>
+      <div class="tools" style="grid-template-columns:repeat(3,1fr)">
+        <button class="b tool" data-a="favourite">★<small>Favourite</small></button>
+        <button class="b tool" data-a="fullscreen">⛶<small>Full screen</small></button>
         <button class="b tool" id="openkeys">#<small>Number</small></button>
       </div>
+      <p class="label" style="text-align:center;text-transform:none;letter-spacing:0">Hold OK for options · Favourite and Record act on what's focused on the TV</p>
     </section>
 
     <section class="view" id="v-tv">
@@ -241,7 +243,14 @@ enum RemotePage {
     async function act(a, value) { try { render(await api('/api/key', { action: a, value })); } catch (e) { offline(); } }
 
     // Buttons (hold to repeat for arrows / rockers)
-    document.querySelectorAll('[data-a]').forEach(btn => {
+    document.querySelectorAll('[data-hold]').forEach(btn => {
+      let timer, held = false;
+      btn.addEventListener('pointerdown', e => { e.preventDefault(); held = false;
+        timer = setTimeout(() => { held = true; act(btn.dataset.hold); navigator.vibrate?.(20); }, 550); });
+      btn.addEventListener('pointerup', () => { clearTimeout(timer); if (!held) act(btn.dataset.a); });
+      ['pointerleave','pointercancel'].forEach(t => btn.addEventListener(t, () => clearTimeout(timer)));
+    });
+    document.querySelectorAll('[data-a]:not([data-hold])').forEach(btn => {
       let timer, rep;
       const start = e => { e.preventDefault(); act(btn.dataset.a);
         if (btn.hasAttribute('data-repeat')) timer = setTimeout(() => rep = setInterval(() => act(btn.dataset.a), 140), 420); };

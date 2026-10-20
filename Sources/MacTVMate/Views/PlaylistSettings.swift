@@ -12,9 +12,13 @@ struct PlaylistsSettings: View {
                 Text("Add an M3U playlist or Xtream Codes login to get started.").foregroundStyle(Theme.dim)
             }
             VStack(spacing: Theme.s(8)) {
-                ForEach(model.library.sources) { s in
-                    SourceRow(source: s, active: s.id == model.library.activeSource?.id) {
+                ForEach(Array(model.library.sources.enumerated()), id: \.element.id) { i, s in
+                    let active = s.id == model.library.activeSource?.id
+                    SourceRow(source: s, active: active) {
                         editing = s; isNew = false
+                    }
+                    .focusSpot(model.settingsForm, row: i, owner: s.id, options: { sourceOptions(s, active: active) }) {
+                        model.showOptions(s.name, sourceOptions(s, active: active))
                     }
                 }
             }
@@ -23,6 +27,10 @@ struct PlaylistsSettings: View {
                     editing = PlaylistSource(name: "My playlist", kind: .xtream(server: "", username: "", password: ""))
                     isNew = true
                 } label: { Label("Add playlist", systemImage: "plus") }
+                .focusSpot(model.settingsForm, row: 100) {
+                    editing = PlaylistSource(name: "My playlist", kind: .xtream(server: "", username: "", password: ""))
+                    isNew = true
+                }
                 Spacer()
                 if let status = model.library.status {
                     ProgressView().controlSize(Theme.control(.small)); Text(status).foregroundStyle(Theme.dim)
@@ -44,6 +52,25 @@ struct PlaylistsSettings: View {
                 Task { await model.reload(force: true) }
             }
         }
+    }
+}
+
+extension PlaylistsSettings {
+    func sourceOptions(_ s: PlaylistSource, active: Bool) -> [MenuAction] {
+        var a: [MenuAction] = []
+        if !active {
+            a.append(MenuAction(title: "Use this playlist", icon: "checkmark.circle") { [model] in
+                model.library.activeSourceID = s.id
+                Task { await model.reload() }
+            })
+        } else {
+            a.append(MenuAction(title: "Refresh playlist & guide", icon: "arrow.clockwise") { [model] in Task { await model.reload(force: true) } })
+        }
+        a.append(MenuAction(title: "Edit", icon: "pencil") { editing = s; isNew = false })
+        a.append(MenuAction(title: "Remove", icon: "trash", role: .destructive) { [model] in
+            model.library.remove(s); Task { await model.reload() }
+        })
+        return a
     }
 }
 
@@ -203,14 +230,16 @@ struct GroupManager: View {
         let hidden = groups.filter { model.library.isHidden($0.name) }.count
         VStack(alignment: .leading, spacing: Theme.s(10)) {
             Toggle("Hide adult groups (XXX, Adult, 18+)", isOn: $model.settings.hideAdultGroups)
+                .focusToggle(model.settingsForm, row: 0, $model.settings.hideAdultGroups)
             HStack {
                 Text("\(groups.count - hidden) shown · \(hidden) hidden").foregroundStyle(Theme.dim)
                 Spacer()
                 TextField("Filter", text: $filter).textFieldStyle(.roundedBorder).frame(width: Theme.s(160))
                 Button("Show all") { groups.forEach { model.library.setHidden($0.name, false) } }
+                    .focusSpot(model.settingsForm, row: 1) { groups.forEach { model.library.setHidden($0.name, false) } }
             }
             VStack(alignment: .leading, spacing: Theme.s(2)) {
-                ForEach(groups.filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) }) { g in
+                ForEach(Array(groups.filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) }.enumerated()), id: \.element.id) { i, g in
                     let adult = model.library.isHiddenByAdultFilter(g.name)
                     Toggle(isOn: Binding(get: { !model.library.isHidden(g.name) },
                                          set: { model.library.setHidden(g.name, !$0) })) {
@@ -224,6 +253,9 @@ struct GroupManager: View {
                     .toggleStyle(.checkbox)
                     .disabled(adult)
                     .padding(.vertical, Theme.s(3))
+                    .focusSpot(model.settingsForm, row: 2 + i, owner: "grp" + g.name) {
+                        if !adult { model.library.setHidden(g.name, !model.library.isHidden(g.name)) }
+                    }
                 }
             }
         }

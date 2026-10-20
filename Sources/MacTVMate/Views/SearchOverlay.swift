@@ -7,7 +7,8 @@ struct SearchResult: Identifiable, Hashable {
 }
 
 extension AppModel {
-    /// Every word must appear in the channel name/group, or in a programme title within -3 h … +24 h.
+    /// Every word must appear in the channel number/name/group, or in a programme's title, cast or directors
+    /// within -3 h … +24 h. A plain number puts that channel first.
     func search(_ query: String, limit: Int = 80) -> (channels: [SearchResult], programmes: [SearchResult]) {
         let words = query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
             .split(whereSeparator: \.isWhitespace).map(String.init)
@@ -18,13 +19,20 @@ extension AppModel {
         }
         var chans: [SearchResult] = []
         var progs: [SearchResult] = []
+        // A number finds that channel first (e.g. "373").
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        if let n = Int(trimmed), let c = library.channels.first(where: { $0.number == n }) {
+            chans.append(SearchResult(channel: c, programme: nil))
+        }
         let from = now.addingTimeInterval(-3 * 3600), to = now.addingTimeInterval(24 * 3600)
         for c in library.visibleChannels {
-            if chans.count < limit, matches(c.name + " " + c.group) {
+            if chans.count < limit, matches("\(c.number) " + c.name + " " + c.group), !chans.contains(where: { $0.channel.id == c.id }) {
                 chans.append(SearchResult(channel: c, programme: nil))
             }
             if progs.count < limit {
-                for p in library.programmes(for: c, in: from..<to) where matches(p.title + " " + (p.subtitle ?? "")) {
+                // Title, episode title, cast and directors ("cameron diaz", "nolan").
+                for p in library.programmes(for: c, in: from..<to)
+                where matches([p.title, p.subtitle ?? "", p.actors.joined(separator: " "), p.directors.joined(separator: " ")].joined(separator: " ")) {
                     progs.append(SearchResult(channel: c, programme: p))
                 }
             }
