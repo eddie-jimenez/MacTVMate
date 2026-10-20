@@ -32,6 +32,8 @@ struct AppSettings: Codable, Equatable {
     var preferredSubtitleLanguage = ""
 
     // Remote
+    /// In the guide, ↓ goes to the lower channel number (44 → 43) and ↑ to the higher, like channel down/up on a TV remote.
+    var guideArrowsFollowChannelNumbers = true
     var webRemoteEnabled = true
     /// Private key in the iPhone remote's link; without it the page and API refuse requests.
     var remoteToken = AppSettings.newToken()
@@ -63,6 +65,7 @@ struct AppSettings: Codable, Equatable {
         preferredAudioLanguage = v(.preferredAudioLanguage, d.preferredAudioLanguage)
         preferredSubtitleLanguage = v(.preferredSubtitleLanguage, d.preferredSubtitleLanguage)
         webRemoteEnabled = v(.webRemoteEnabled, d.webRemoteEnabled)
+        guideArrowsFollowChannelNumbers = v(.guideArrowsFollowChannelNumbers, d.guideArrowsFollowChannelNumbers)
         remoteToken = v(.remoteToken, d.remoteToken)
     }
 
