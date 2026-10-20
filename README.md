@@ -37,6 +37,7 @@ Most IPTV providers ship thin or broken guide data, so typical players show "No 
 - Channel up/down, number entry, last channel, favourites, recently watched
 - Hide channel groups (adult groups hidden by default)
 - Search (⌘F or /) across channels and the guide
+- **TV mode:** drag the window onto a TV and the whole interface scales up to a readable-from-the-couch size automatically; fine-tune it in Settings ▸ Appearance ▸ Interface size
 
 **A richer guide**
 - Merges your provider's EPG with **EPGtalk** (Gracenote data) and **epg.iptv.cat** by default — add or remove sources in Settings ▸ EPG
@@ -166,6 +167,7 @@ Please respect each source's terms of use.
 - **App quits immediately / "libmpv not found"** — run `brew install mpv` (or `brew reinstall mpv`)
 - **No guide for some channels** — check Settings ▸ EPG; each source shows ✓ or ⚠ with the reason
 - **iPhone remote won't load** — make sure the iPhone is on the same Wi-Fi, allow incoming connections if macOS asks, and try the IP link shown in Settings
+- **Text too small or too large on a TV** — Settings ▸ Appearance ▸ Interface size: *Auto* detects TVs by size and name, or pick 100–250%
 - **Shield remote buttons do nothing** — pair it in System Settings ▸ Bluetooth (hold Back + Home), then use the button tester in Settings ▸ Remote & keyboard
 
 ---

@@ -13,6 +13,41 @@ enum Theme {
     static let faint = Color.white.opacity(0.35)
     /// Set from Appearance settings.
     static var accent = Color(hex: 0x2196f3)
+
+    /// Interface scale: 1 on a monitor; larger on a TV across the room (Settings ▸ Appearance ▸ Interface size).
+    static var uiScale: CGFloat = 1
+
+    /// A scaled size (layout widths, paddings, spacing).
+    static func s(_ v: CGFloat) -> CGFloat { (v * uiScale).rounded() }
+
+    /// Native controls (buttons, pickers, toggles) don't follow font sizes, so step their size up with the scale.
+    static func control(_ base: ControlSize) -> ControlSize {
+        let sizes: [ControlSize] = [.mini, .small, .regular, .large, .extraLarge]
+        let steps = uiScale >= 1.4 ? 2 : uiScale >= 1.15 ? 1 : 0
+        let i = sizes.firstIndex(of: base) ?? 2
+        return sizes[min(sizes.count - 1, i + steps)]
+    }
+
+    /// macOS text styles at the current interface scale.
+    static func f(_ style: Font.TextStyle) -> Font {
+        let (size, weight): (CGFloat, Font.Weight) = {
+            switch style {
+            case .largeTitle: return (26, .regular)
+            case .title: return (22, .regular)
+            case .title2: return (17, .regular)
+            case .title3: return (15, .regular)
+            case .headline: return (13, .bold)
+            case .subheadline: return (11, .regular)
+            case .body: return (13, .regular)
+            case .callout: return (12, .regular)
+            case .footnote: return (10, .regular)
+            case .caption: return (10, .regular)
+            case .caption2: return (10, .regular)
+            @unknown default: return (13, .regular)
+            }
+        }()
+        return .system(size: size * uiScale, weight: weight)
+    }
     static let live = Color(red: 0.93, green: 0.26, blue: 0.24)
 
     static let time: DateFormatter = {
@@ -62,7 +97,7 @@ struct ChannelLogo: View {
                 Image(systemName: "tv").foregroundStyle(Theme.faint)
             }
         }
-        .frame(width: size * 1.4, height: size)
+        .frame(width: Theme.s(size * 1.4), height: Theme.s(size))
     }
 }
 
@@ -77,7 +112,7 @@ struct ProgressLine: View {
                 Capsule().fill(color).frame(width: g.size.width * value)
             }
         }
-        .frame(height: 3)
+        .frame(height: Theme.s(3))
     }
 }
 
@@ -87,8 +122,8 @@ struct Badge: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 10, weight: .bold))
-            .padding(.horizontal, 5).padding(.vertical, 2)
+            .font(.system(size: Theme.uiScale * 10, weight: .bold))
+            .padding(.horizontal, Theme.s(5)).padding(.vertical, Theme.s(2))
             .background(color.opacity(0.9), in: RoundedRectangle(cornerRadius: 3))
             .foregroundStyle(.white)
     }

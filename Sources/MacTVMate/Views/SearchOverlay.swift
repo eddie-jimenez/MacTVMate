@@ -63,12 +63,12 @@ struct SearchOverlay: View {
             Color.black.opacity(0.55).ignoresSafeArea()
                 .onTapGesture { model.showSearch = false }
 
-            VStack(spacing: 0) {
-                HStack(spacing: 10) {
+            VStack(spacing: Theme.s(0)) {
+                HStack(spacing: Theme.s(10)) {
                     Image(systemName: "magnifyingglass").foregroundStyle(Theme.dim)
                     TextField("Search channels and programmes — e.g. 49ers, NFL, ESPN", text: $model.searchQuery)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 20))
+                        .font(.system(size: Theme.uiScale * 20))
                         .focused($focused)
                         .onSubmit { if all.indices.contains(selection) { model.open(all[selection]) } }
                         .onKeyPress(.downArrow) { selection = min(all.count - 1, selection + 1); return .handled }
@@ -79,20 +79,20 @@ struct SearchOverlay: View {
                             .buttonStyle(.borderless).foregroundStyle(Theme.dim)
                     }
                 }
-                .padding(16)
+                .padding(Theme.s(16))
                 .background(Theme.panel)
 
                 if model.searchQuery.isEmpty {
                     Text("Type to search \(model.library.channels.count) channels\(model.library.epgLoadedAt == nil ? "" : " and the TV guide"). ↑/↓ to pick, Return to play, F to favourite.")
-                        .font(.callout).foregroundStyle(Theme.dim).padding(16)
+                        .font(Theme.f(.callout)).foregroundStyle(Theme.dim).padding(Theme.s(16))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else if all.isEmpty {
-                    Text("No matches for “\(model.searchQuery)”").foregroundStyle(Theme.dim).padding(16)
+                    Text("No matches for “\(model.searchQuery)”").foregroundStyle(Theme.dim).padding(Theme.s(16))
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
                     ScrollViewReader { proxy in
                         ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 2) {
+                            LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
                                 if !results.channels.isEmpty { header("Channels (\(results.channels.count))") }
                                 ForEach(Array(results.channels.enumerated()), id: \.element.id) { i, r in
                                     row(r, index: i)
@@ -102,51 +102,51 @@ struct SearchOverlay: View {
                                     row(r, index: results.channels.count + i)
                                 }
                             }
-                            .padding(8)
+                            .padding(Theme.s(8))
                         }
                         .onChange(of: selection) { _, i in proxy.scrollTo(i, anchor: .center) }
                     }
                 }
             }
-            .frame(width: 720)
-            .frame(maxHeight: 560, alignment: .top)
+            .frame(width: Theme.s(720))
+            .frame(maxHeight: Theme.s(560), alignment: .top)
             .fixedSize(horizontal: false, vertical: model.searchQuery.isEmpty || all.isEmpty)
             .background(Theme.bg, in: RoundedRectangle(cornerRadius: 12))
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08)))
             .shadow(radius: 30)
-            .padding(.top, 60)
+            .padding(.top, Theme.s(60))
         }
         .onAppear { focused = true; selection = 0 }
         .onChange(of: model.searchQuery) { _, _ in selection = 0 }
     }
 
     private func header(_ text: String) -> some View {
-        Text(text).font(.caption.weight(.semibold)).foregroundStyle(Theme.faint)
-            .padding(.horizontal, 10).padding(.top, 10).padding(.bottom, 2)
+        Text(text).font(Theme.f(.caption).weight(.semibold)).foregroundStyle(Theme.faint)
+            .padding(.horizontal, Theme.s(10)).padding(.top, Theme.s(10)).padding(.bottom, Theme.s(2))
     }
 
     private func row(_ r: SearchResult, index: Int) -> some View {
         let focused = index == selection
         let live = r.programme.map { $0.isLive(at: model.now) } ?? false
-        return HStack(spacing: 10) {
-            Text(verbatim: String(r.channel.number)).font(.callout.monospacedDigit()).frame(width: 44, alignment: .trailing).opacity(0.6)
+        return HStack(spacing: Theme.s(10)) {
+            Text(verbatim: String(r.channel.number)).font(Theme.f(.callout).monospacedDigit()).frame(width: Theme.s(44), alignment: .trailing).opacity(0.6)
             ChannelLogo(url: r.channel.logo, size: 28)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Theme.s(2)) {
                 if let p = r.programme {
-                    HStack(spacing: 6) {
-                        Text(p.title).font(.system(size: 14, weight: .semibold)).lineLimit(1)
+                    HStack(spacing: Theme.s(6)) {
+                        Text(p.title).font(.system(size: Theme.uiScale * 14, weight: .semibold)).lineLimit(1)
                         if live { Badge(text: "LIVE", color: Theme.live) }
                     }
-                    Text("\(r.channel.name)  ·  \(Theme.day.string(from: p.start)) \(Theme.range(p))").font(.caption).opacity(0.7).lineLimit(1)
+                    Text("\(r.channel.name)  ·  \(Theme.day.string(from: p.start)) \(Theme.range(p))").font(Theme.f(.caption)).opacity(0.7).lineLimit(1)
                 } else {
-                    Text(r.channel.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                    Text(model.library.programme(for: r.channel, at: model.now)?.title ?? r.channel.group).font(.caption).opacity(0.7).lineLimit(1)
+                    Text(r.channel.name).font(.system(size: Theme.uiScale * 14, weight: .semibold)).lineLimit(1)
+                    Text(model.library.programme(for: r.channel, at: model.now)?.title ?? r.channel.group).font(Theme.f(.caption)).opacity(0.7).lineLimit(1)
                 }
             }
             Spacer()
             FavouriteButton(channel: r.channel, inverted: focused)
         }
-        .padding(.horizontal, 10).padding(.vertical, 6)
+        .padding(.horizontal, Theme.s(10)).padding(.vertical, Theme.s(6))
         .background(focused ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 6))
         .foregroundStyle(focused ? Theme.focusText : Theme.text)
         .contentShape(Rectangle())

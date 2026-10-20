@@ -10,14 +10,14 @@ struct SettingsPanel: View {
             Color.black.opacity(0.35).ignoresSafeArea()
                 .onTapGesture { if !model.library.sources.isEmpty { model.showSettings = false } }
 
-            HStack(spacing: 0) {
+            HStack(spacing: Theme.s(0)) {
                 // Sections
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Settings").font(.title.weight(.semibold)).padding(.bottom, 14).padding(.leading, 10)
+                VStack(alignment: .leading, spacing: Theme.s(4)) {
+                    Text("Settings").font(Theme.f(.title).weight(.semibold)).padding(.bottom, Theme.s(14)).padding(.leading, Theme.s(10))
                     ForEach(SettingsSection.allCases) { s in
                         Button { model.settingsSection = s } label: {
                             Label(s.rawValue, systemImage: s.icon)
-                                .padding(.vertical, 8).padding(.horizontal, 10)
+                                .padding(.vertical, Theme.s(8)).padding(.horizontal, Theme.s(10))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .background(model.settingsSection == s ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 8))
                                 .foregroundStyle(model.settingsSection == s ? Theme.focusText : Theme.text)
@@ -27,27 +27,27 @@ struct SettingsPanel: View {
                     }
                     Spacer()
                 }
-                .padding(20)
-                .frame(width: 220)
+                .padding(Theme.s(20))
+                .frame(width: Theme.s(220))
                 .background(Theme.accent.opacity(0.18))
 
                 // Content
-                VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: Theme.s(0)) {
                     HStack {
-                        Text(model.settingsSection.rawValue).font(.title2.weight(.semibold))
+                        Text(model.settingsSection.rawValue).font(Theme.f(.title2).weight(.semibold))
                         Spacer()
                         if !model.library.sources.isEmpty {
-                            Button { model.showSettings = false } label: { Image(systemName: "xmark.circle.fill").font(.title2) }
+                            Button { model.showSettings = false } label: { Image(systemName: "xmark.circle.fill").font(Theme.f(.title2)) }
                                 .buttonStyle(.borderless).foregroundStyle(Theme.dim).help("Close (Esc)")
                         }
                     }
-                    .padding(.bottom, 16)
+                    .padding(.bottom, Theme.s(16))
                     ScrollView {
-                        section.frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, 30)
+                        section.frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, Theme.s(30))
                     }
                 }
-                .padding(24)
-                .frame(width: 560)
+                .padding(Theme.s(24))
+                .frame(width: Theme.s(560))
                 .background(Theme.bg)
             }
             .frame(maxHeight: .infinity)
@@ -74,11 +74,12 @@ private struct SettingsGroup<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(Theme.faint)
+        VStack(alignment: .leading, spacing: Theme.s(10)) {
+            Text(title.uppercased()).font(Theme.f(.caption).weight(.semibold)).foregroundStyle(Theme.faint)
             content
         }
-        .padding(.bottom, 22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.bottom, Theme.s(22))
     }
 }
 
@@ -102,7 +103,7 @@ struct GeneralSettings: View {
                 }
             }
             Text("Playlists, favourites and settings are stored in ~/Library/Application Support/MacTVMate (readable by your user only).")
-                .font(.caption).foregroundStyle(Theme.dim)
+                .font(Theme.f(.caption)).foregroundStyle(Theme.dim)
         }
     }
 }
@@ -119,18 +120,18 @@ struct EPGSettings: View {
                     .foregroundStyle(Theme.dim)
             }
             ForEach(lib.guideSources) { s in
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: Theme.s(8)) {
                     Image(systemName: s.ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                         .foregroundStyle(s.ok ? .green : .orange)
                     Text(s.name).fontWeight(.medium)
-                    Text(s.note).font(.caption).foregroundStyle(Theme.dim).lineLimit(2)
+                    Text(s.note).font(Theme.f(.caption)).foregroundStyle(Theme.dim).lineLimit(2)
                 }
             }
             Button("Update guide now") { Task { await model.reload(force: true) } }
         }
         SettingsGroup(title: "Extra guide sources (XMLTV)") {
             Text("Added to your playlist's own guide. Channels are matched by tvg-id or by name, so a public guide can fill in channels your provider leaves empty.")
-                .font(.callout).foregroundStyle(Theme.dim)
+                .font(Theme.f(.callout)).foregroundStyle(Theme.dim)
             ForEach(lib.settings.extraEPGURLs, id: \.self) { url in
                 HStack {
                     Text(url).lineLimit(1).truncationMode(.middle)
@@ -164,20 +165,29 @@ struct AppearanceSettings: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
         SettingsGroup(title: "Accent colour") {
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 10), count: 8), alignment: .leading, spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(Theme.s(34)), spacing: Theme.s(10)), count: 8), alignment: .leading, spacing: Theme.s(10)) {
                 ForEach(AppSettings.accents, id: \.0) { name, hex in
-                    Circle().fill(Color(hex: hex)).frame(width: 30, height: 30)
+                    Circle().fill(Color(hex: hex)).frame(width: Theme.s(30), height: Theme.s(30))
                         .overlay(Circle().stroke(.white, lineWidth: model.library.settings.accent == name ? 3 : 0))
                         .onTapGesture { model.library.settings.accent = name }
                         .help(name)
                 }
             }
         }
+        SettingsGroup(title: "Interface size") {
+            Picker("", selection: $model.settings.interfaceSize) {
+                Text("Auto").tag(0)
+                ForEach([100, 125, 150, 175, 200, 250], id: \.self) { Text("\($0)%").tag($0) }
+            }
+            .pickerStyle(.segmented).labelsHidden().frame(maxWidth: Theme.s(480), alignment: .leading)
+            Text("Auto uses 100% on monitors and a larger, readable-from-the-couch size on TVs. Now: \(model.displayInfo)")
+                .font(Theme.f(.caption)).foregroundStyle(Theme.dim)
+        }
         SettingsGroup(title: "TV guide") {
             Picker("Size", selection: $model.settings.guideSize) {
                 ForEach(0..<4) { Text(AppSettings.sizeNames[$0]).tag($0) }
             }
-            .pickerStyle(.segmented).frame(maxWidth: 380)
+            .pickerStyle(.segmented).frame(maxWidth: Theme.s(380), alignment: .leading)
             Toggle("Show group column", isOn: $model.settings.showGroupColumn)
             Toggle("Show channel numbers", isOn: $model.settings.showChannelNumbers)
             Toggle("Dim past programmes", isOn: $model.settings.dimPastProgrammes)
@@ -192,16 +202,16 @@ struct PlaybackSettings: View {
             Picker("", selection: $model.settings.bufferSize) {
                 ForEach(0..<4) { Text(AppSettings.bufferNames[$0]).tag($0) }
             }
-            .pickerStyle(.segmented).labelsHidden().frame(maxWidth: 380)
+            .pickerStyle(.segmented).labelsHidden().frame(maxWidth: Theme.s(380), alignment: .leading)
             Text("Larger buffers ride out unstable streams but take longer to recover after a stall.")
-                .font(.caption).foregroundStyle(Theme.dim)
+                .font(Theme.f(.caption)).foregroundStyle(Theme.dim)
         }
         SettingsGroup(title: "Decoding") {
             Toggle("Hardware decoding (VideoToolbox)", isOn: $model.settings.hardwareDecoding)
         }
         SettingsGroup(title: "Preferred languages") {
-            TextField("Audio (e.g. eng,spa)", text: $model.settings.preferredAudioLanguage).textFieldStyle(.roundedBorder).frame(maxWidth: 260)
-            TextField("Subtitles (e.g. eng)", text: $model.settings.preferredSubtitleLanguage).textFieldStyle(.roundedBorder).frame(maxWidth: 260)
+            TextField("Audio (e.g. eng,spa)", text: $model.settings.preferredAudioLanguage).textFieldStyle(.roundedBorder).frame(maxWidth: Theme.s(260), alignment: .leading)
+            TextField("Subtitles (e.g. eng)", text: $model.settings.preferredSubtitleLanguage).textFieldStyle(.roundedBorder).frame(maxWidth: Theme.s(260), alignment: .leading)
         }
     }
 }
@@ -212,12 +222,12 @@ struct AboutSettings: View {
         SettingsGroup(title: "Metadata sources") {
             switch model.meta.imdbState {
             case .missing: Text("IMDb data: not downloaded yet").foregroundStyle(Theme.dim)
-            case .building(let s): HStack { ProgressView().controlSize(.small); Text("IMDb data: \(s)") }
+            case .building(let s): HStack { ProgressView().controlSize(Theme.control(.small)); Text("IMDb data: \(s)") }
             case .ready(let d): Text("IMDb data: ready (built \(d.formatted(date: .abbreviated, time: .shortened)), refreshed weekly)").foregroundStyle(Theme.dim)
             case .failed(let e): Label("IMDb data: \(e)", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
             }
             Text("Ratings from IMDb's official datasets (personal, non-commercial use). Show art from TVmaze. Live scores from ESPN. Guide data from your provider, EPGtalk (Gracenote) and iptv.cat.")
-                .font(.caption).foregroundStyle(Theme.dim)
+                .font(Theme.f(.caption)).foregroundStyle(Theme.dim)
         }
         SettingsGroup(title: "MacTVMate") {
             Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev")")
@@ -234,59 +244,59 @@ struct RemoteSettings: View {
     var body: some View {
         SettingsGroup(title: "TV guide navigation") {
             Toggle("↑ / ↓ change channel number (↓ = 44 → 43, like a TV remote)", isOn: $model.settings.guideArrowsChangeChannelNumber)
-            Text("Off (default): ↓ moves down the grid to the next channel (44 → 45). The full-screen player always uses ↓ = channel down.").font(.caption).foregroundStyle(Theme.dim)
+            Text("Off (default): ↓ moves down the grid to the next channel (44 → 45). The full-screen player always uses ↓ = channel down.").font(Theme.f(.caption)).foregroundStyle(Theme.dim)
         }
         SettingsGroup(title: "iPhone / iPad remote") {
             Toggle("Allow remote control from devices on this Wi-Fi", isOn: $model.settings.webRemoteEnabled)
                 .onChange(of: model.settings.webRemoteEnabled) { _, on in on ? model.webRemote.start() : model.webRemote.stop() }
             if model.settings.webRemoteEnabled, let url = model.webRemote.url {
-                HStack(alignment: .top, spacing: 18) {
-                    QRCode(text: url.absoluteString).frame(width: 150, height: 150)
-                        .padding(8).background(.white, in: RoundedRectangle(cornerRadius: 10))
-                    VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: Theme.s(18)) {
+                    QRCode(text: url.absoluteString).frame(width: Theme.s(150), height: Theme.s(150))
+                        .padding(Theme.s(8)).background(.white, in: RoundedRectangle(cornerRadius: 10))
+                    VStack(alignment: .leading, spacing: Theme.s(8)) {
                         Text("Scan with the iPhone camera, then tap Share ▸ Add to Home Screen for an app-like remote.")
-                            .font(.callout).fixedSize(horizontal: false, vertical: true)
-                        Text(url.absoluteString).font(.caption.monospaced()).textSelection(.enabled).foregroundStyle(Theme.dim)
+                            .font(Theme.f(.callout)).fixedSize(horizontal: false, vertical: true)
+                        Text(url.absoluteString).font(Theme.f(.caption).monospaced()).textSelection(.enabled).foregroundStyle(Theme.dim)
                         if let ip = model.webRemote.ipURL {
-                            Text("If that doesn't open: \(ip.absoluteString)").font(.caption.monospaced()).textSelection(.enabled)
+                            Text("If that doesn't open: \(ip.absoluteString)").font(Theme.f(.caption).monospaced()).textSelection(.enabled)
                                 .foregroundStyle(Theme.faint)
                         }
                         Text(model.webRemote.status + (model.webRemote.clients > 0 ? " · \(model.webRemote.clients) connected" : ""))
-                            .font(.caption).foregroundStyle(Theme.dim)
+                            .font(Theme.f(.caption)).foregroundStyle(Theme.dim)
                         Button("New link (disconnects old devices)") { model.settings.remoteToken = AppSettings.newToken() }
-                            .controlSize(.small)
+                            .controlSize(Theme.control(.small))
                     }
                 }
             }
         }
         SettingsGroup(title: "NVIDIA Shield remote") {
             Text("Pair it with this Mac: hold Back + Home for about 5 seconds until the light blinks, then select it in System Settings ▸ Bluetooth.")
-                .font(.callout).foregroundStyle(Theme.dim).fixedSize(horizontal: false, vertical: true)
+                .font(Theme.f(.callout)).foregroundStyle(Theme.dim).fixedSize(horizontal: false, vertical: true)
             Label(model.remote.hidStatus, systemImage: model.remote.hidStatus.hasPrefix("Listening") ? "dot.radiowaves.left.and.right" : "exclamationmark.triangle")
                 .foregroundStyle(model.remote.hidStatus.hasPrefix("Listening") ? Theme.dim : .orange)
                 .fixedSize(horizontal: false, vertical: true)
             Text(model.remote.devices.isEmpty ? "No remote-type devices connected." : "Connected: " + model.remote.devices.joined(separator: ", "))
-                .font(.caption).foregroundStyle(Theme.faint)
+                .font(Theme.f(.caption)).foregroundStyle(Theme.faint)
         }
         SettingsGroup(title: "Button tester") {
             HStack {
-                Text("Press buttons on the remote — each one shows up here.").font(.callout).foregroundStyle(Theme.dim)
+                Text("Press buttons on the remote — each one shows up here.").font(Theme.f(.callout)).foregroundStyle(Theme.dim)
                 Spacer()
                 Button("Clear") { model.remote.clearLog() }
             }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: Theme.s(4)) {
                 if model.remote.log.isEmpty { Text("Waiting for input…").foregroundStyle(Theme.faint) }
                 ForEach(model.remote.log) { i in
                     HStack {
-                        Text(i.time.formatted(date: .omitted, time: .standard)).font(.caption.monospacedDigit()).foregroundStyle(Theme.faint)
-                        Text(i.source).font(.caption).foregroundStyle(Theme.dim)
-                        Text(i.detail).font(.callout.monospaced())
+                        Text(i.time.formatted(date: .omitted, time: .standard)).font(Theme.f(.caption).monospacedDigit()).foregroundStyle(Theme.faint)
+                        Text(i.source).font(Theme.f(.caption)).foregroundStyle(Theme.dim)
+                        Text(i.detail).font(Theme.f(.callout).monospaced())
                         Spacer()
-                        Text(i.action ?? "—").font(.caption.weight(.semibold)).foregroundStyle(i.action == nil ? Theme.faint : Theme.accent)
+                        Text(i.action ?? "—").font(Theme.f(.caption).weight(.semibold)).foregroundStyle(i.action == nil ? Theme.faint : Theme.accent)
                     }
                 }
             }
-            .padding(10)
+            .padding(Theme.s(10))
             .background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
         }
         SettingsGroup(title: "Shield remote buttons") {
@@ -296,8 +306,8 @@ struct RemoteSettings: View {
                      ("⏩ / ⏪", "Seek 30 s in movies & catch-up; channel up/down on live TV"),
                      ("Volume", "Mac volume")], id: \.0) { k, v in
                 HStack(alignment: .top) {
-                    Text(k).font(.callout.weight(.semibold)).frame(width: 110, alignment: .leading)
-                    Text(v).font(.callout).foregroundStyle(Theme.dim)
+                    Text(k).font(Theme.f(.callout).weight(.semibold)).frame(width: Theme.s(110), alignment: .leading)
+                    Text(v).font(Theme.f(.callout)).foregroundStyle(Theme.dim)
                 }
             }
         }

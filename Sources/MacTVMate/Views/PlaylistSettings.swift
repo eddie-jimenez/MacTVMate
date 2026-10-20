@@ -7,11 +7,11 @@ struct PlaylistsSettings: View {
     @State private var isNew = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Theme.s(14)) {
             if model.library.sources.isEmpty {
                 Text("Add an M3U playlist or Xtream Codes login to get started.").foregroundStyle(Theme.dim)
             }
-            VStack(spacing: 8) {
+            VStack(spacing: Theme.s(8)) {
                 ForEach(model.library.sources) { s in
                     SourceRow(source: s, active: s.id == model.library.activeSource?.id) {
                         editing = s; isNew = false
@@ -25,7 +25,7 @@ struct PlaylistsSettings: View {
                 } label: { Label("Add playlist", systemImage: "plus") }
                 Spacer()
                 if let status = model.library.status {
-                    ProgressView().controlSize(.small); Text(status).foregroundStyle(Theme.dim)
+                    ProgressView().controlSize(Theme.control(.small)); Text(status).foregroundStyle(Theme.dim)
                 } else if let err = model.library.error {
                     Label(err, systemImage: "exclamationmark.triangle").foregroundStyle(.orange).lineLimit(2)
                 } else if !model.library.channels.isEmpty {
@@ -54,11 +54,11 @@ struct SourceRow: View {
     let edit: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Theme.s(12)) {
             Image(systemName: active ? "checkmark.circle.fill" : "circle").foregroundStyle(active ? Theme.accent : Theme.faint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(source.name).font(.headline)
-                Text(summary).font(.caption).foregroundStyle(Theme.dim).lineLimit(1)
+            VStack(alignment: .leading, spacing: Theme.s(2)) {
+                Text(source.name).font(Theme.f(.headline))
+                Text(summary).font(Theme.f(.caption)).foregroundStyle(Theme.dim).lineLimit(1)
             }
             Spacer()
             Button { Task { await model.reload(force: true) } } label: { Image(systemName: "arrow.clockwise") }
@@ -67,7 +67,7 @@ struct SourceRow: View {
             Button(role: .destructive) { model.library.remove(source); Task { await model.reload() } } label: { Image(systemName: "trash") }
         }
         .buttonStyle(.borderless)
-        .padding(12)
+        .padding(Theme.s(12))
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 10))
         .contentShape(Rectangle())
         .onTapGesture {
@@ -99,8 +99,8 @@ struct SourceEditor: View {
     @State private var password = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(isNew ? "Add playlist" : "Edit playlist").font(.title2.weight(.semibold))
+        VStack(alignment: .leading, spacing: Theme.s(16)) {
+            Text(isNew ? "Add playlist" : "Edit playlist").font(Theme.f(.title2).weight(.semibold))
             Picker("", selection: $type) {
                 Text("M3U playlist").tag(0)
                 Text("Xtream Codes").tag(1)
@@ -144,8 +144,8 @@ struct SourceEditor: View {
                 .disabled(type == 0 ? playlistURL.isEmpty : (server.isEmpty || username.isEmpty))
             }
         }
-        .padding(24)
-        .frame(width: 560)
+        .padding(Theme.s(24))
+        .frame(width: Theme.s(560))
         .onAppear {
             switch source.kind {
             case let .m3u(p, e): type = 0; playlistURL = p; epgURL = e
@@ -180,12 +180,12 @@ struct ShortcutsHelp: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Keyboard").font(.headline)
+        VStack(alignment: .leading, spacing: Theme.s(6)) {
+            Text("Keyboard").font(Theme.f(.headline))
             ForEach(rows, id: \.0) { k, v in
                 HStack(alignment: .top) {
-                    Text(k).font(.callout.monospaced()).frame(width: 130, alignment: .leading)
-                    Text(v).font(.callout).foregroundStyle(Theme.dim)
+                    Text(k).font(Theme.f(.callout).monospaced()).frame(width: Theme.s(130), alignment: .leading)
+                    Text(v).font(Theme.f(.callout)).foregroundStyle(Theme.dim)
                 }
             }
         }
@@ -201,29 +201,29 @@ struct GroupManager: View {
     var body: some View {
         let groups = model.library.allGroups
         let hidden = groups.filter { model.library.isHidden($0.name) }.count
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Theme.s(10)) {
             Toggle("Hide adult groups (XXX, Adult, 18+)", isOn: $model.settings.hideAdultGroups)
             HStack {
                 Text("\(groups.count - hidden) shown · \(hidden) hidden").foregroundStyle(Theme.dim)
                 Spacer()
-                TextField("Filter", text: $filter).textFieldStyle(.roundedBorder).frame(width: 160)
+                TextField("Filter", text: $filter).textFieldStyle(.roundedBorder).frame(width: Theme.s(160))
                 Button("Show all") { groups.forEach { model.library.setHidden($0.name, false) } }
             }
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: Theme.s(2)) {
                 ForEach(groups.filter { filter.isEmpty || $0.name.localizedCaseInsensitiveContains(filter) }) { g in
                     let adult = model.library.isHiddenByAdultFilter(g.name)
                     Toggle(isOn: Binding(get: { !model.library.isHidden(g.name) },
                                          set: { model.library.setHidden(g.name, !$0) })) {
                         HStack {
                             Text(g.name)
-                            if adult { Text("hidden by adult filter").font(.caption).foregroundStyle(Theme.faint) }
+                            if adult { Text("hidden by adult filter").font(Theme.f(.caption)).foregroundStyle(Theme.faint) }
                             Spacer()
-                            Text("\(g.count)").foregroundStyle(Theme.faint).font(.caption)
+                            Text("\(g.count)").foregroundStyle(Theme.faint).font(Theme.f(.caption))
                         }
                     }
                     .toggleStyle(.checkbox)
                     .disabled(adult)
-                    .padding(.vertical, 3)
+                    .padding(.vertical, Theme.s(3))
                 }
             }
         }

@@ -12,64 +12,64 @@ struct VODBrowser: View {
 
     var body: some View {
         let store = model.vod
-        HStack(spacing: 0) {
+        HStack(spacing: Theme.s(0)) {
             // Categories
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
+                LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
                     categoryRow("__all", "All \(kind == .movies ? "movies" : "shows")", store.items(kind).count)
                     categoryRow("__mylist", "My list", store.items(kind).filter { model.library.isInMyList($0.id) }.count)
                     if kind == .movies || kind == .series {
                         categoryRow("__continue", "Continue watching", continueItems.count)
                     }
-                    Divider().padding(.vertical, 6)
+                    Divider().padding(.vertical, Theme.s(6))
                     let counts = categoryCounts
                     ForEach(store.categories(kind).filter { (counts[$0.id] ?? 0) > 0 }) { c in
                         categoryRow(c.id, c.name, counts[c.id])
                     }
                 }
-                .padding(10)
+                .padding(Theme.s(10))
             }
-            .frame(width: 240)
+            .frame(width: Theme.s(240))
             .background(Theme.panel)
 
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    Text(kind == .movies ? "Movies" : "Shows").font(.largeTitle.weight(.semibold))
+            VStack(alignment: .leading, spacing: Theme.s(12)) {
+                HStack(spacing: Theme.s(12)) {
+                    Text(kind == .movies ? "Movies" : "Shows").font(Theme.f(.largeTitle).weight(.semibold))
                     Spacer()
                     Picker("", selection: $sort) {
                         Text("Recently added").tag(0); Text("A–Z").tag(1); Text("IMDb rating").tag(2); Text("Popular").tag(3)
                     }
-                    .pickerStyle(.segmented).labelsHidden().frame(width: 400)
+                    .pickerStyle(.segmented).labelsHidden().frame(width: Theme.s(400))
                     HStack {
                         Image(systemName: "magnifyingglass").foregroundStyle(Theme.dim)
                         TextField("Search \(kind == .movies ? "movies" : "shows")", text: $query).textFieldStyle(.plain)
                     }
-                    .padding(8).frame(width: 240)
+                    .padding(Theme.s(8)).frame(width: Theme.s(240))
                     .background(Theme.cell, in: RoundedRectangle(cornerRadius: 8))
                 }
 
                 if !store.isAvailable {
                     placeholder("Movies and shows need an Xtream Codes playlist.", "film")
                 } else if store.loading == kind && store.items(kind).isEmpty {
-                    HStack { ProgressView().controlSize(.small); Text("Loading \(kind == .movies ? "movies" : "shows")…").foregroundStyle(Theme.dim) }
+                    HStack { ProgressView().controlSize(Theme.control(.small)); Text("Loading \(kind == .movies ? "movies" : "shows")…").foregroundStyle(Theme.dim) }
                     Spacer()
                 } else if let err = store.error, store.items(kind).isEmpty {
                     placeholder(err, "exclamationmark.triangle")
                 } else {
                     let items = filtered
-                    Text("\(items.count) titles").font(.callout).foregroundStyle(Theme.dim)
+                    Text("\(items.count) titles").font(Theme.f(.callout)).foregroundStyle(Theme.dim)
                     ScrollView {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150, maximum: 190), spacing: 18, alignment: .top)], alignment: .leading, spacing: 22) {
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: Theme.s(150), maximum: Theme.s(190)), spacing: Theme.s(18), alignment: .top)], alignment: .leading, spacing: Theme.s(22)) {
                             ForEach(items) { item in
                                 PosterCard(item: item, progress: progress(item), imdb: store.imdb[item.id])
                                     .onTapGesture { selected = item }
                             }
                         }
-                        .padding(.bottom, 30)
+                        .padding(.bottom, Theme.s(30))
                     }
                 }
             }
-            .padding(24)
+            .padding(Theme.s(24))
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .background(Theme.bg)
@@ -130,9 +130,9 @@ struct VODBrowser: View {
         return HStack {
             Text(name).lineLimit(1)
             Spacer()
-            if let count { Text("\(count)").font(.caption).foregroundStyle(sel ? Theme.focusText.opacity(0.6) : Theme.faint) }
+            if let count { Text("\(count)").font(Theme.f(.caption)).foregroundStyle(sel ? Theme.focusText.opacity(0.6) : Theme.faint) }
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
+        .padding(.horizontal, Theme.s(10)).padding(.vertical, Theme.s(7))
         .background(sel ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 6))
         .foregroundStyle(sel ? Theme.focusText : Theme.text)
         .contentShape(Rectangle())
@@ -140,8 +140,8 @@ struct VODBrowser: View {
     }
 
     private func placeholder(_ text: String, _ icon: String) -> some View {
-        VStack(spacing: 10) {
-            Image(systemName: icon).font(.system(size: 40)).foregroundStyle(Theme.faint)
+        VStack(spacing: Theme.s(10)) {
+            Image(systemName: icon).font(.system(size: Theme.uiScale * 40)).foregroundStyle(Theme.faint)
             Text(text).foregroundStyle(Theme.dim)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -156,7 +156,7 @@ struct PosterCard: View {
     @State private var hover = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Theme.s(6)) {
             // A fixed 2:3 frame, filled and cropped, so every card in a row lines up. Badges are overlays,
             // so they can never change the poster's size.
             Color.clear
@@ -167,7 +167,7 @@ struct PosterCard: View {
                         else {
                             ZStack {
                                 Theme.cell
-                                Text(item.name).font(.caption).multilineTextAlignment(.center).foregroundStyle(Theme.dim).padding(8)
+                                Text(item.name).font(Theme.f(.caption)).multilineTextAlignment(.center).foregroundStyle(Theme.dim).padding(Theme.s(8))
                             }
                         }
                     }
@@ -176,16 +176,16 @@ struct PosterCard: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(hover ? Theme.accent : .clear, lineWidth: 3))
                 .overlay(alignment: .topTrailing) {
                     if model.library.isInMyList(item.id) {
-                        Image(systemName: "bookmark.fill").foregroundStyle(Theme.accent).padding(6)
+                        Image(systemName: "bookmark.fill").foregroundStyle(Theme.accent).padding(Theme.s(6))
                     }
                 }
-                .overlay(alignment: .bottomLeading) { ratingBadge.padding(6) }
+                .overlay(alignment: .bottomLeading) { ratingBadge.padding(Theme.s(6)) }
             if let progress { ProgressLine(value: progress) }
-            Text(item.name).font(.callout.weight(.medium)).lineLimit(2)
+            Text(item.name).font(Theme.f(.callout).weight(.medium)).lineLimit(2)
             let year = item.year ?? imdb?.year.map(String.init)
             let genres = imdb?.genres.prefix(2).joined(separator: ", ")
             if year != nil || genres != nil {
-                Text([year, genres].compactMap { $0 }.joined(separator: " · ")).font(.caption).foregroundStyle(Theme.dim).lineLimit(1)
+                Text([year, genres].compactMap { $0 }.joined(separator: " · ")).font(Theme.f(.caption)).foregroundStyle(Theme.dim).lineLimit(1)
             }
         }
         .scaleEffect(hover ? 1.03 : 1)
@@ -196,16 +196,16 @@ struct PosterCard: View {
 
     @ViewBuilder private var ratingBadge: some View {
         if let t = imdb {
-            HStack(spacing: 3) {
-                Text("IMDb").font(.system(size: 8, weight: .heavy)).foregroundStyle(.black)
-                    .padding(.horizontal, 2).background(Color(hex: 0xF5C518), in: RoundedRectangle(cornerRadius: 2))
-                Text(t.ratingText).font(.caption2.weight(.bold))
+            HStack(spacing: Theme.s(3)) {
+                Text("IMDb").font(.system(size: Theme.uiScale * 8, weight: .heavy)).foregroundStyle(.black)
+                    .padding(.horizontal, Theme.s(2)).background(Color(hex: 0xF5C518), in: RoundedRectangle(cornerRadius: 2))
+                Text(t.ratingText).font(Theme.f(.caption2).weight(.bold))
             }
-            .padding(.horizontal, 5).padding(.vertical, 2)
+            .padding(.horizontal, Theme.s(5)).padding(.vertical, Theme.s(2))
             .background(.black.opacity(0.75), in: Capsule())
         } else if let r = item.rating, r > 0 {
-            Text(String(format: "★ %.1f", r)).font(.caption2.weight(.bold))
-                .padding(.horizontal, 5).padding(.vertical, 2)
+            Text(String(format: "★ %.1f", r)).font(Theme.f(.caption2).weight(.bold))
+                .padding(.horizontal, Theme.s(5)).padding(.vertical, Theme.s(2))
                 .background(.black.opacity(0.7), in: Capsule())
         }
     }
@@ -220,9 +220,9 @@ struct MovieDetailView: View {
     var body: some View {
         let resume = model.library.positions[item.id]
         DetailLayout(item: item, backdrop: details?.backdrop, onClose: { dismiss() }) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(item.name).font(.largeTitle.weight(.bold))
-                HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: Theme.s(10)) {
+                Text(item.name).font(Theme.f(.largeTitle).weight(.bold))
+                HStack(spacing: Theme.s(10)) {
                     if let y = details?.releaseDate ?? item.year { Text(String(y.prefix(10))) }
                     if let d = details?.duration { Text(d) }
                     if let r = details?.rating ?? item.rating, r > 0 { Text(String(format: "★ %.1f", r)) }
@@ -230,24 +230,24 @@ struct MovieDetailView: View {
                 }
                 .foregroundStyle(Theme.dim)
                 if let imdb = movieIMDb { IMDbBadge(title: imdb) }
-                HStack(spacing: 12) {
+                HStack(spacing: Theme.s(12)) {
                     Button {
                         play()
-                    } label: { Label(resume != nil ? "Resume \(fmt(resume!))" : "Play", systemImage: "play.fill").padding(.horizontal, 6) }
-                    .controlSize(.large).buttonStyle(.borderedProminent).tint(Theme.accent)
+                    } label: { Label(resume != nil ? "Resume \(fmt(resume!))" : "Play", systemImage: "play.fill").padding(.horizontal, Theme.s(6)) }
+                    .controlSize(Theme.control(.large)).buttonStyle(.borderedProminent).tint(Theme.accent)
                     if resume != nil {
-                        Button("Play from start") { model.library.positions[item.id] = nil; play() }.controlSize(.large)
+                        Button("Play from start") { model.library.positions[item.id] = nil; play() }.controlSize(Theme.control(.large))
                     }
                     MyListButton(key: item.id)
                     if let t = details?.trailer, !t.isEmpty, let url = URL(string: t.hasPrefix("http") ? t : "https://www.youtube.com/watch?v=\(t)") {
-                        Button { NSWorkspace.shared.open(url) } label: { Label("Trailer", systemImage: "play.rectangle") }.controlSize(.large)
+                        Button { NSWorkspace.shared.open(url) } label: { Label("Trailer", systemImage: "play.rectangle") }.controlSize(Theme.control(.large))
                     }
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, Theme.s(6))
                 if let p = details?.plot ?? item.plot { Text(p).foregroundStyle(Theme.text.opacity(0.85)).fixedSize(horizontal: false, vertical: true) }
-                if let c = details?.cast { Text("Cast: \(c)").font(.callout).foregroundStyle(Theme.dim).lineLimit(3) }
-                if let d = details?.director { Text("Director: \(d)").font(.callout).foregroundStyle(Theme.dim) }
-                if details == nil { ProgressView().controlSize(.small) }
+                if let c = details?.cast { Text("Cast: \(c)").font(Theme.f(.callout)).foregroundStyle(Theme.dim).lineLimit(3) }
+                if let d = details?.director { Text("Director: \(d)").font(Theme.f(.callout)).foregroundStyle(Theme.dim) }
+                if details == nil { ProgressView().controlSize(Theme.control(.small)) }
             }
         }
         .task { details = await model.vod.details(movie: item) }
@@ -275,38 +275,38 @@ struct SeriesDetailView: View {
 
     var body: some View {
         DetailLayout(item: item, backdrop: details?.backdrop, onClose: { dismiss() }) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text(item.name).font(.largeTitle.weight(.bold))
-                HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: Theme.s(10)) {
+                Text(item.name).font(Theme.f(.largeTitle).weight(.bold))
+                HStack(spacing: Theme.s(10)) {
                     if let y = details?.releaseDate ?? item.year { Text(String(y.prefix(10))) }
                     if let r = details?.rating ?? item.rating, r > 0 { Text(String(format: "★ %.1f", r)) }
                     if let g = details?.genre { Text(g).lineLimit(1) }
                 }
                 .foregroundStyle(Theme.dim)
                 if let imdb = model.meta.imdb(title: MetaStore.splitYear(item.name).0, year: nil, series: true) { IMDbBadge(title: imdb) }
-                HStack(spacing: 12) {
+                HStack(spacing: Theme.s(12)) {
                     if let next = nextEpisode {
                         Button { play(next) } label: {
                             Label("\(model.library.positions[next.key] != nil ? "Resume" : "Play") S\(next.season) E\(next.number)", systemImage: "play.fill")
-                                .padding(.horizontal, 6)
+                                .padding(.horizontal, Theme.s(6))
                         }
-                        .controlSize(.large).buttonStyle(.borderedProminent).tint(Theme.accent)
+                        .controlSize(Theme.control(.large)).buttonStyle(.borderedProminent).tint(Theme.accent)
                     }
                     MyListButton(key: item.id)
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, Theme.s(6))
                 if let p = details?.plot ?? item.plot { Text(p).foregroundStyle(Theme.text.opacity(0.85)).lineLimit(5) }
 
                 if let seasons = details?.seasons, !seasons.isEmpty {
                     Picker("Season", selection: $season) {
                         ForEach(seasons.keys.sorted(), id: \.self) { Text("Season \($0)").tag($0) }
                     }
-                    .frame(maxWidth: 220)
-                    VStack(spacing: 2) {
+                    .frame(maxWidth: Theme.s(220))
+                    VStack(spacing: Theme.s(2)) {
                         ForEach(seasons[season] ?? []) { ep in episodeRow(ep) }
                     }
                 } else if details == nil {
-                    ProgressView().controlSize(.small)
+                    ProgressView().controlSize(Theme.control(.small))
                 } else {
                     Text("No episodes listed.").foregroundStyle(Theme.dim)
                 }
@@ -329,23 +329,23 @@ struct SeriesDetailView: View {
 
     private func episodeRow(_ ep: Episode) -> some View {
         let watched = model.library.lastEpisode[item.id] == ep.id
-        return HStack(spacing: 12) {
+        return HStack(spacing: Theme.s(12)) {
             AsyncImage(url: ep.image) { p in
                 if let i = p.image { i.resizable().aspectRatio(contentMode: .fill) } else { Theme.cell }
             }
-            .frame(width: 120, height: 68).clipShape(RoundedRectangle(cornerRadius: 6))
-            VStack(alignment: .leading, spacing: 3) {
+            .frame(width: Theme.s(120), height: Theme.s(68)).clipShape(RoundedRectangle(cornerRadius: 6))
+            VStack(alignment: .leading, spacing: Theme.s(3)) {
                 HStack {
-                    Text("\(ep.number). \(ep.title)").font(.callout.weight(.semibold)).lineLimit(1)
-                    if watched { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent).font(.caption) }
+                    Text("\(ep.number). \(ep.title)").font(Theme.f(.callout).weight(.semibold)).lineLimit(1)
+                    if watched { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent).font(Theme.f(.caption)) }
                 }
-                if let p = ep.plot { Text(p).font(.caption).foregroundStyle(Theme.dim).lineLimit(2) }
-                if model.library.positions[ep.key] != nil { ProgressLine(value: 0.5).frame(width: 120) }
+                if let p = ep.plot { Text(p).font(Theme.f(.caption)).foregroundStyle(Theme.dim).lineLimit(2) }
+                if model.library.positions[ep.key] != nil { ProgressLine(value: 0.5).frame(width: Theme.s(120)) }
             }
             Spacer()
-            if let d = ep.duration { Text(d).font(.caption).foregroundStyle(Theme.dim) }
+            if let d = ep.duration { Text(d).font(Theme.f(.caption)).foregroundStyle(Theme.dim) }
         }
-        .padding(6)
+        .padding(Theme.s(6))
         .background(Theme.cell.opacity(0.6), in: RoundedRectangle(cornerRadius: 8))
         .contentShape(Rectangle())
         .onTapGesture { play(ep) }
@@ -371,23 +371,23 @@ struct DetailLayout<Content: View>: View {
             AsyncImage(url: backdrop ?? item.poster) { p in
                 if let i = p.image { i.resizable().aspectRatio(contentMode: .fill).blur(radius: backdrop == nil ? 30 : 0) } else { Theme.bg }
             }
-            .frame(width: 900, height: 600).clipped()
+            .frame(width: Theme.s(900), height: Theme.s(600)).clipped()
             .overlay(LinearGradient(colors: [Theme.bg.opacity(0.55), Theme.bg.opacity(0.97)], startPoint: .top, endPoint: .bottom))
 
-            HStack(alignment: .top, spacing: 26) {
+            HStack(alignment: .top, spacing: Theme.s(26)) {
                 AsyncImage(url: item.poster) { p in
                     if let i = p.image { i.resizable().aspectRatio(contentMode: .fit) } else { Theme.cell }
                 }
-                .frame(width: 210).clipShape(RoundedRectangle(cornerRadius: 10)).shadow(radius: 20)
+                .frame(width: Theme.s(210)).clipShape(RoundedRectangle(cornerRadius: 10)).shadow(radius: 20)
                 ScrollView { content.frame(maxWidth: .infinity, alignment: .leading) }
             }
-            .padding(30)
+            .padding(Theme.s(30))
 
-            Button(action: onClose) { Image(systemName: "xmark.circle.fill").font(.title) }
-                .buttonStyle(.borderless).foregroundStyle(Theme.dim).padding(16)
+            Button(action: onClose) { Image(systemName: "xmark.circle.fill").font(Theme.f(.title)) }
+                .buttonStyle(.borderless).foregroundStyle(Theme.dim).padding(Theme.s(16))
                 .keyboardShortcut(.cancelAction)
         }
-        .frame(width: 900, height: 600)
+        .frame(width: Theme.s(900), height: Theme.s(600))
         .foregroundStyle(Theme.text)
         .preferredColorScheme(.dark)
     }
@@ -401,7 +401,7 @@ struct MyListButton: View {
         Button { model.library.toggleMyList(key) } label: {
             Label(inList ? "In My list" : "My list", systemImage: inList ? "bookmark.fill" : "bookmark")
         }
-        .controlSize(.large)
+        .controlSize(Theme.control(.large))
     }
 }
 
@@ -415,27 +415,27 @@ struct MyListScreen: View {
         let shows = model.vod.series.filter { model.library.isInMyList($0.id) }
         let favs = model.library.channels(in: ChannelGroup.favourites)
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                Text("My list").font(.largeTitle.weight(.semibold))
+            VStack(alignment: .leading, spacing: Theme.s(24)) {
+                Text("My list").font(Theme.f(.largeTitle).weight(.semibold))
                 shelf("Favourite channels", empty: "Star channels in the guide or channel list (☆ or F).") {
                     ForEach(favs) { c in
-                        VStack(spacing: 6) {
-                            ChannelLogo(url: c.logo, size: 50).frame(width: 140, height: 80)
+                        VStack(spacing: Theme.s(6)) {
+                            ChannelLogo(url: c.logo, size: 50).frame(width: Theme.s(140), height: Theme.s(80))
                                 .background(Theme.cell, in: RoundedRectangle(cornerRadius: 8))
-                            Text(c.name).font(.caption).lineLimit(1).frame(width: 140)
-                            Text(model.library.programme(for: c, at: model.now)?.title ?? "").font(.caption2).foregroundStyle(Theme.dim).lineLimit(1).frame(width: 140)
+                            Text(c.name).font(Theme.f(.caption)).lineLimit(1).frame(width: Theme.s(140))
+                            Text(model.library.programme(for: c, at: model.now)?.title ?? "").font(Theme.f(.caption2)).foregroundStyle(Theme.dim).lineLimit(1).frame(width: Theme.s(140))
                         }
                         .onTapGesture { model.play(c) }
                     }
                 }
                 shelf("Movies", empty: "Add movies with the My list button.") {
-                    ForEach(movies) { m in PosterCard(item: m, progress: nil, imdb: model.vod.imdb[m.id]).frame(width: 150).onTapGesture { selected = m } }
+                    ForEach(movies) { m in PosterCard(item: m, progress: nil, imdb: model.vod.imdb[m.id]).frame(width: Theme.s(150)).onTapGesture { selected = m } }
                 }
                 shelf("Shows", empty: "Add shows with the My list button.") {
-                    ForEach(shows) { s in PosterCard(item: s, progress: nil, imdb: model.vod.imdb[s.id]).frame(width: 150).onTapGesture { selected = s } }
+                    ForEach(shows) { s in PosterCard(item: s, progress: nil, imdb: model.vod.imdb[s.id]).frame(width: Theme.s(150)).onTapGesture { selected = s } }
                 }
             }
-            .padding(28)
+            .padding(Theme.s(28))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.bg)
@@ -446,10 +446,10 @@ struct MyListScreen: View {
     }
 
     private func shelf<Content: View>(_ title: String, empty: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.title3.weight(.semibold))
+        VStack(alignment: .leading, spacing: Theme.s(10)) {
+            Text(title).font(Theme.f(.title3).weight(.semibold))
             ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: 16) { content() }
+                HStack(alignment: .top, spacing: Theme.s(16)) { content() }
             }
             .overlay(alignment: .leading) {
                 // Shown only when the shelf has no items (HStack collapses to zero width).

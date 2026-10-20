@@ -5,10 +5,10 @@ struct GuideScreen: View {
     let layout: GuideLayout
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 0) {
+        VStack(spacing: Theme.s(0)) {
+            HStack(alignment: .top, spacing: Theme.s(0)) {
                 ProgrammeDetails()
-                    .padding(.leading, 24).padding(.top, 18).padding(.trailing, 20)
+                    .padding(.leading, Theme.s(24)).padding(.top, Theme.s(18)).padding(.trailing, Theme.s(20))
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 Color.clear.frame(width: layout.previewRect.width + 32)
                     .overlay(alignment: .topLeading) {
@@ -20,7 +20,7 @@ struct GuideScreen: View {
             .frame(height: layout.topHeight)
             .background(alignment: .leading) {
                 // Opaque everywhere except the preview "window", with the programme's art as a soft backdrop.
-                HStack(spacing: 0) {
+                HStack(spacing: Theme.s(0)) {
                     ZStack {
                         Theme.bg
                         if let p = model.guideSelectedProgramme, let art = model.meta.art(for: p) {
@@ -33,7 +33,7 @@ struct GuideScreen: View {
                         }
                     }
                     Color.clear.frame(width: layout.previewRect.width + 16)
-                    Theme.bg.frame(width: 16)
+                    Theme.bg.frame(width: Theme.s(16))
                 }
             }
 
@@ -49,25 +49,25 @@ struct ProgrammeDetails: View {
     var body: some View {
         let ch = model.guideSelectedChannel
         let p = model.guideSelectedProgramme
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Theme.s(8)) {
             if let ch {
-                HStack(spacing: 10) {
+                HStack(spacing: Theme.s(10)) {
                     ChannelLogo(url: ch.logo, size: 28)
-                    Text(verbatim: "\(ch.number)  \(ch.name)").font(.headline).foregroundStyle(Theme.dim).lineLimit(1)
+                    Text(verbatim: "\(ch.number)  \(ch.name)").font(Theme.f(.headline)).foregroundStyle(Theme.dim).lineLimit(1)
                     FavouriteButton(channel: ch)
                 }
             }
             let game = p.flatMap { prog in ch.flatMap { model.game(for: prog, channel: $0) } }
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: Theme.s(16)) {
                 if let p, let icon = model.meta.art(for: p), p.kind != .sports {
                     AsyncImage(url: icon) { ph in
                         if let i = ph.image { i.resizable().aspectRatio(contentMode: .fit) } else { Color.clear }
                     }
-                    .frame(width: 92, height: 136).clipShape(RoundedRectangle(cornerRadius: 6))
+                    .frame(width: Theme.s(92), height: Theme.s(136)).clipShape(RoundedRectangle(cornerRadius: 6))
                 }
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: Theme.s(6)) {
                     Text(p?.displayTitle ?? (ch == nil ? "No channels" : "No programme information"))
-                        .font(.system(size: 26, weight: .semibold))
+                        .font(.system(size: Theme.uiScale * 26, weight: .semibold))
                         .lineLimit(2)
                     if let game { GameHeader(game: game) }
                     else if let p, p.kind != .other || p.isNew {
@@ -75,12 +75,12 @@ struct ProgrammeDetails: View {
                         EnrichmentLine(p: p)
                     }
                     if let p, let sub = p.subtitle, !sub.isEmpty, game == nil {
-                        Text(sub).font(.callout.italic()).foregroundStyle(Theme.dim).lineLimit(1)
+                        Text(sub).font(Theme.f(.callout).italic()).foregroundStyle(Theme.dim).lineLimit(1)
                     }
                 }
             }
             if let p {
-                HStack(spacing: 8) {
+                HStack(spacing: Theme.s(8)) {
                     Text("\(Theme.dayLabel(p.start))  \(Theme.range(p))  ·  \(Int(p.duration / 60)) min")
                         .foregroundStyle(Theme.dim)
                     if p.isLive(at: model.now) { Badge(text: "LIVE", color: Theme.live) }
@@ -89,26 +89,26 @@ struct ProgrammeDetails: View {
                     if let ch, model.recorder.isScheduled(ch, p) { Badge(text: "REC", color: Theme.live) }
                     if let cat = p.category { Text(cat).foregroundStyle(Theme.faint) }
                 }
-                .font(.callout)
+                .font(Theme.f(.callout))
                 if p.isLive(at: model.now) {
                     HStack {
-                        ProgressLine(value: p.progress(at: model.now)).frame(maxWidth: 360)
-                        Text("\(Int(p.stop.timeIntervalSince(model.now) / 60)) min left").font(.caption).foregroundStyle(Theme.dim)
+                        ProgressLine(value: p.progress(at: model.now)).frame(maxWidth: Theme.s(360))
+                        Text("\(Int(p.stop.timeIntervalSince(model.now) / 60)) min left").font(Theme.f(.caption)).foregroundStyle(Theme.dim)
                     }
                 }
                 if let desc = p.desc {
-                    Text(desc).font(.callout).foregroundStyle(Theme.dim).lineLimit(3)
+                    Text(desc).font(Theme.f(.callout)).foregroundStyle(Theme.dim).lineLimit(3)
                 }
                 if !p.actors.isEmpty || !p.directors.isEmpty {
                     Text(([p.directors.isEmpty ? nil : "Dir. " + p.directors.prefix(2).joined(separator: ", "),
                            p.actors.isEmpty ? nil : p.actors.prefix(5).joined(separator: ", ")].compactMap { $0 }).joined(separator: "  ·  "))
-                        .font(.caption).foregroundStyle(Theme.faint).lineLimit(1)
+                        .font(Theme.f(.caption)).foregroundStyle(Theme.faint).lineLimit(1)
                 }
             }
-            if let ch { actions(ch, p).padding(.top, 4) }
+            if let ch { actions(ch, p).padding(.top, Theme.s(4)) }
             Spacer(minLength: 0)
             if let status = model.library.status {
-                HStack { ProgressView().controlSize(.small); Text(status).foregroundStyle(Theme.dim) }
+                HStack { ProgressView().controlSize(Theme.control(.small)); Text(status).foregroundStyle(Theme.dim) }
             } else if let err = model.library.error {
                 Label(err, systemImage: "exclamationmark.triangle").foregroundStyle(.orange).lineLimit(2)
             } else if let warn = model.library.guideWarning {
@@ -120,7 +120,7 @@ struct ProgrammeDetails: View {
     /// Watch · Watch from start · Record · Remind (TiViMate's programme menu).
     @ViewBuilder private func actions(_ ch: Channel, _ p: Programme?) -> some View {
         let now = model.now
-        HStack(spacing: 8) {
+        HStack(spacing: Theme.s(8)) {
             if p == nil || p!.isLive(at: now) {
                 Button { model.play(ch) } label: { Label("Watch", systemImage: "play.fill") }
                     .buttonStyle(.borderedProminent).tint(Theme.accent)
@@ -149,30 +149,30 @@ struct ProgrammeDetails: View {
                 }
             }
         }
-        .controlSize(.regular)
+        .controlSize(Theme.control(.regular))
     }
 }
 
 /// TiViMate's group list next to the guide (Favourites first, always).
 struct GroupColumn: View {
     @EnvironmentObject var model: AppModel
-    static let width: CGFloat = 220
+    static var width: CGFloat { Theme.s(220) }
 
     var body: some View {
         let groups = columnGroups
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
+                LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
                     ForEach(groups) { g in
                         let sel = g.name == model.selectedGroup
-                        HStack(spacing: 8) {
-                            if g.name == ChannelGroup.favourites { Image(systemName: "star.fill").foregroundStyle(.yellow).font(.caption) }
+                        HStack(spacing: Theme.s(8)) {
+                            if g.name == ChannelGroup.favourites { Image(systemName: "star.fill").foregroundStyle(.yellow).font(Theme.f(.caption)) }
                             Text(g.name).lineLimit(1)
                             Spacer()
-                            Text("\(g.count)").font(.caption).foregroundStyle(sel ? Theme.focusText.opacity(0.6) : Theme.faint)
+                            Text("\(g.count)").font(Theme.f(.caption)).foregroundStyle(sel ? Theme.focusText.opacity(0.6) : Theme.faint)
                         }
-                        .font(.system(size: 14 * (model.library.settings.guideSize >= 2 ? 1.1 : 1), weight: sel ? .semibold : .regular))
-                        .padding(.horizontal, 12).padding(.vertical, 9)
+                        .font(.system(size: Theme.uiScale * 14 * (model.library.settings.guideSize >= 2 ? 1.1 : 1), weight: sel ? .semibold : .regular))
+                        .padding(.horizontal, Theme.s(12)).padding(.vertical, Theme.s(9))
                         .background(sel ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 8))
                         .foregroundStyle(sel ? Theme.focusText : Theme.text.opacity(0.9))
                         .contentShape(Rectangle())
@@ -183,7 +183,7 @@ struct GroupColumn: View {
                         .id(g.name)
                     }
                 }
-                .padding(.horizontal, 10).padding(.top, 40)
+                .padding(.horizontal, Theme.s(10)).padding(.top, Theme.s(40))
             }
             .onAppear { proxy.scrollTo(model.selectedGroup, anchor: .center) }
         }
@@ -205,7 +205,7 @@ struct GuideHeader: View {
     let layout: GuideLayout
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: Theme.s(0)) {
             Menu {
                 ForEach(model.library.groups) { g in
                     Button("\(g.name) (\(g.count))") {
@@ -214,11 +214,11 @@ struct GuideHeader: View {
                     }
                 }
             } label: {
-                Text(Theme.dayLabel(model.guideStart, withTime: false)).font(.callout.weight(.semibold)).foregroundStyle(Theme.accent).lineLimit(1)
+                Text(Theme.dayLabel(model.guideStart, withTime: false)).font(Theme.f(.callout).weight(.semibold)).foregroundStyle(Theme.accent).lineLimit(1)
             }
             .menuStyle(.borderlessButton)
             .help("Pick a group")
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Theme.s(12))
             .frame(width: layout.channelColumn, alignment: .leading)
 
             // Same scale as the grid below, so ticks line up with programme edges.
@@ -226,7 +226,7 @@ struct GuideHeader: View {
                 ForEach(0..<Int((layout.visibleSpan / AppModel.slot).rounded(.up)), id: \.self) { i in
                     let t = model.guideStart.addingTimeInterval(Double(i) * AppModel.slot)
                     Text(Theme.time.string(from: t))
-                        .font(.callout.monospacedDigit())
+                        .font(Theme.f(.callout).monospacedDigit())
                         .foregroundStyle(Theme.dim)
                         .offset(x: CGFloat(i) * layout.slotWidth + 6)
                 }
@@ -234,7 +234,7 @@ struct GuideHeader: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .clipped()
             .overlay(alignment: .trailing) {
-            HStack(spacing: 4) {
+            HStack(spacing: Theme.s(4)) {
                 Button { model.guideShift(slots: -48) } label: { Image(systemName: "chevron.left.2") }.help("Previous day")
                 Button { model.guideShift(slots: -2) } label: { Image(systemName: "chevron.left") }.help("Back 1 hour")
                 Button("Now") { model.resetGuideToNow() }
@@ -245,7 +245,7 @@ struct GuideHeader: View {
                     .help("Watch full screen (⌘↩)").disabled(model.playing == nil)
             }
             .buttonStyle(.borderless)
-            .padding(.horizontal, 10)
+            .padding(.horizontal, Theme.s(10))
             .frame(maxHeight: .infinity)
             .background(Theme.panel)
             }
@@ -271,7 +271,7 @@ struct GuideGrid: View {
                 ScrollView(.vertical) {
                     // Rows are identified by channel (not index), and the stack is rebuilt per group: an index id
                     // made the lazy stack keep the previous group's rows after switching groups.
-                    LazyVStack(spacing: 1) {
+                    LazyVStack(spacing: Theme.s(1)) {
                         ForEach(Array(channels.enumerated()), id: \.element.id) { idx, ch in
                             GuideRow(channel: ch, row: idx, start: start, end: end, pxPerSec: pxPerSec, layout: layout)
                         }
@@ -293,7 +293,7 @@ struct GuideGrid: View {
                 // "Now" line.
                 if model.now > start, model.now < end {
                     Rectangle().fill(Theme.live)
-                        .frame(width: 2)
+                        .frame(width: Theme.s(2))
                         .offset(x: layout.channelColumn + model.now.timeIntervalSince(start) * pxPerSec)
                         .allowsHitTesting(false)
                 }
@@ -317,29 +317,29 @@ struct GuideRow: View {
         let selectedRow = model.guideRow == row
         let isPlaying = model.playing?.channel.id == channel.id
         let fs = layout.fontScale
-        HStack(spacing: 0) {
-            HStack(spacing: 8) {
+        HStack(spacing: Theme.s(0)) {
+            HStack(spacing: Theme.s(8)) {
                 // Click/double-click area (kept apart from the star so the star always gets its clicks).
-                HStack(spacing: 8) {
+                HStack(spacing: Theme.s(8)) {
                     if model.library.settings.showChannelNumbers {
-                        Text(verbatim: String(channel.number)).font(.system(size: 13 * fs).monospacedDigit()).foregroundStyle(Theme.dim)
-                            .frame(minWidth: 30, alignment: .trailing)
+                        Text(verbatim: String(channel.number)).font(.system(size: Theme.uiScale * 13 * fs).monospacedDigit()).foregroundStyle(Theme.dim)
+                            .frame(minWidth: Theme.s(30), alignment: .trailing)
                     }
                     ChannelLogo(url: channel.logo, size: min(30, layout.rowHeight * 0.55))
-                    Text(channel.name).lineLimit(1).font(.system(size: 14 * fs, weight: selectedRow ? .semibold : .regular))
+                    Text(channel.name).lineLimit(1).font(.system(size: Theme.uiScale * 14 * fs, weight: selectedRow ? .semibold : .regular))
                     Spacer(minLength: 0)
-                    if isPlaying { Image(systemName: "speaker.wave.2.fill").font(.caption).foregroundStyle(Theme.accent) }
-                    if channel.hasCatchup { Image(systemName: "clock.arrow.circlepath").font(.caption).foregroundStyle(Theme.faint) }
+                    if isPlaying { Image(systemName: "speaker.wave.2.fill").font(Theme.f(.caption)).foregroundStyle(Theme.accent) }
+                    if channel.hasCatchup { Image(systemName: "clock.arrow.circlepath").font(Theme.f(.caption)).foregroundStyle(Theme.faint) }
                 }
                 .contentShape(Rectangle())
                 .onTapGesture(count: 2) { model.play(channel) }
                 .onTapGesture { model.guideRow = row; model.guideTime = model.now; model.play(channel, fullscreen: false) }
                 FavouriteButton(channel: channel)
-                    .font(.system(size: 13 * fs))
-                    .frame(width: 22, height: layout.rowHeight)
+                    .font(.system(size: Theme.uiScale * 13 * fs))
+                    .frame(width: Theme.s(22), height: layout.rowHeight)
                     .contentShape(Rectangle())
             }
-            .padding(.leading, 8).padding(.trailing, 4)
+            .padding(.leading, Theme.s(8)).padding(.trailing, Theme.s(4))
             .frame(width: layout.channelColumn, height: layout.rowHeight)
             .background(selectedRow ? Theme.cellLive : Theme.panel)
             .contextMenu {
@@ -427,19 +427,19 @@ struct GuideRow: View {
                       fs: CGFloat) -> some View {
         let dim = past && model.library.settings.dimPastProgrammes
         let twoLines = layout.rowHeight >= 46
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                if recording { Circle().fill(Theme.live).frame(width: 8, height: 8) }
-                if reminder { Image(systemName: "bell.fill").font(.caption2) }
-                if liveGame { Circle().fill(Theme.live).frame(width: 7, height: 7) }
-                if event { Image(systemName: "sportscourt").font(.caption2) }
-                else if let kindIcon { Image(systemName: kindIcon).font(.caption2).opacity(0.8) }
-                if catchup { Image(systemName: "clock.arrow.circlepath").font(.caption2) }
-                Text(title).font(.system(size: 13 * fs, weight: .medium)).lineLimit(1)
+        return VStack(alignment: .leading, spacing: Theme.s(2)) {
+            HStack(spacing: Theme.s(4)) {
+                if recording { Circle().fill(Theme.live).frame(width: Theme.s(8), height: Theme.s(8)) }
+                if reminder { Image(systemName: "bell.fill").font(Theme.f(.caption2)) }
+                if liveGame { Circle().fill(Theme.live).frame(width: Theme.s(7), height: Theme.s(7)) }
+                if event { Image(systemName: "sportscourt").font(Theme.f(.caption2)) }
+                else if let kindIcon { Image(systemName: kindIcon).font(Theme.f(.caption2)).opacity(0.8) }
+                if catchup { Image(systemName: "clock.arrow.circlepath").font(Theme.f(.caption2)) }
+                Text(title).font(.system(size: Theme.uiScale * 13 * fs, weight: .medium)).lineLimit(1)
             }
-            if twoLines { Text(subtitle).font(.system(size: 11 * fs)).opacity(0.65).lineLimit(1) }
+            if twoLines { Text(subtitle).font(.system(size: Theme.uiScale * 11 * fs)).opacity(0.65).lineLimit(1) }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, Theme.s(8))
         .frame(width: max(0, width - 1), height: layout.rowHeight, alignment: .leading)
         .background(focused ? Theme.focus : (live ? Theme.cellLive : Theme.cell))
         .foregroundStyle(focused ? Theme.focusText : (dim ? Theme.dim.opacity(0.7) : Theme.text))
@@ -493,41 +493,41 @@ struct PreviewControls: View {
 
             if let target = model.playing {
                 if let err = player.errorMessage {
-                    VStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill").font(.title2).foregroundStyle(.orange)
-                        Text(err).font(.callout).multilineTextAlignment(.center)
-                        Text(target.channel.name).font(.caption).foregroundStyle(Theme.dim).lineLimit(1)
-                        Button("Retry") { model.play(target.channel, fullscreen: false) }.controlSize(.small)
+                    VStack(spacing: Theme.s(8)) {
+                        Image(systemName: "exclamationmark.triangle.fill").font(Theme.f(.title2)).foregroundStyle(.orange)
+                        Text(err).font(Theme.f(.callout)).multilineTextAlignment(.center)
+                        Text(target.channel.name).font(Theme.f(.caption)).foregroundStyle(Theme.dim).lineLimit(1)
+                        Button("Retry") { model.play(target.channel, fullscreen: false) }.controlSize(Theme.control(.small))
                     }
-                    .padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(Theme.s(16)).frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(.black.opacity(0.75))
                 } else if player.tuning {
-                    VStack(spacing: 10) {
-                        ProgressView().controlSize(.regular).tint(.white)
-                        Text("Tuning \(target.channel.name)…").font(.callout).foregroundStyle(Theme.dim).lineLimit(1)
+                    VStack(spacing: Theme.s(10)) {
+                        ProgressView().controlSize(Theme.control(.regular)).tint(.white)
+                        Text("Tuning \(target.channel.name)…").font(Theme.f(.callout)).foregroundStyle(Theme.dim).lineLimit(1)
                     }
-                    .padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(Theme.s(16)).frame(maxWidth: .infinity, maxHeight: .infinity)
                     .allowsHitTesting(false)
                 }
             }
             if hover, let target = model.playing {
-                VStack(spacing: 0) {
-                    HStack(spacing: 6) {
+                VStack(spacing: Theme.s(0)) {
+                    HStack(spacing: Theme.s(6)) {
                         if target.isLive { Badge(text: "LIVE", color: Theme.live) }
-                        Text(target.channel.name).font(.caption.weight(.semibold)).lineLimit(1)
+                        Text(target.channel.name).font(Theme.f(.caption).weight(.semibold)).lineLimit(1)
                         Spacer()
-                        if player.isRecording { Label("REC", systemImage: "record.circle").font(.caption.weight(.bold)).foregroundStyle(Theme.live) }
+                        if player.isRecording { Label("REC", systemImage: "record.circle").font(Theme.f(.caption).weight(.bold)).foregroundStyle(Theme.live) }
                     }
-                    .padding(10)
+                    .padding(Theme.s(10))
                     .background(LinearGradient(colors: [.black.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom))
                     Spacer()
-                    HStack(spacing: 14) {
+                    HStack(spacing: Theme.s(14)) {
                         Button { player.togglePause() } label: { Image(systemName: player.isPaused ? "play.fill" : "pause.fill") }
                             .help("Play / pause (Space)")
                         Button { model.zap(-1) } label: { Image(systemName: "chevron.down") }.help("Channel down")
                         Button { model.zap(1) } label: { Image(systemName: "chevron.up") }.help("Channel up")
                         Button { player.isMuted.toggle() } label: { Image(systemName: player.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") }
-                        Slider(value: $player.volume, in: 0...130).frame(width: 90).controlSize(.mini)
+                        Slider(value: $player.volume, in: 0...130).frame(width: Theme.s(90)).controlSize(Theme.control(.mini))
                         Spacer()
                         Menu {
                             Section("Audio") {
@@ -553,10 +553,10 @@ struct PreviewControls: View {
                         Button { model.toggleFullScreen() } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
                             .help("Full screen")
                     }
-                    .font(.system(size: 14))
+                    .font(.system(size: Theme.uiScale * 14))
                     .buttonStyle(.borderless)
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 10)
+                    .padding(.horizontal, Theme.s(12)).padding(.vertical, Theme.s(10))
                     .background(LinearGradient(colors: [.clear, .black.opacity(0.8)], startPoint: .top, endPoint: .bottom))
                 }
                 .transition(.opacity)

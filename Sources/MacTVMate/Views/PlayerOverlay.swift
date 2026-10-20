@@ -16,15 +16,15 @@ struct PlayerOverlay: View {
                 }
 
             if player.isBuffering || player.tuning || (model.playing != nil && player.isIdle && player.errorMessage == nil) {
-                ProgressView().controlSize(.large).tint(.white)
+                ProgressView().controlSize(Theme.control(.large)).tint(.white)
             }
             if let err = player.errorMessage {
-                VStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill").font(.largeTitle).foregroundStyle(.orange)
+                VStack(spacing: Theme.s(8)) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(Theme.f(.largeTitle)).foregroundStyle(.orange)
                     Text(err)
                     Button("Retry") { if let p = model.playing { retry(p) } }
                 }
-                .padding(24)
+                .padding(Theme.s(24))
                 .background(.black.opacity(0.7), in: RoundedRectangle(cornerRadius: 12))
             }
 
@@ -36,19 +36,19 @@ struct PlayerOverlay: View {
 
             if (model.showInfoBar || hovering) && !model.showChannelList {
                 VStack {
-                    TopControls(player: player).padding(16)
+                    TopControls(player: player).padding(Theme.s(16))
                     Spacer()
-                    InfoBar(player: player).padding(20)
+                    InfoBar(player: player).padding(Theme.s(20))
                 }
                 .transition(.opacity)
             }
 
             if player.isRecording {
                 Label("REC", systemImage: "record.circle")
-                    .font(.headline).foregroundStyle(Theme.live)
-                    .padding(8).background(.black.opacity(0.6), in: Capsule())
+                    .font(Theme.f(.headline)).foregroundStyle(Theme.live)
+                    .padding(Theme.s(8)).background(.black.opacity(0.6), in: Capsule())
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .padding(20)
+                    .padding(Theme.s(20))
             }
         }
         .onScrollWheelHorizontal { dx in
@@ -86,7 +86,7 @@ struct TopControls: View {
     @ObservedObject var player: MPVController
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: Theme.s(14)) {
             Button { model.showGuide() } label: { Label("Guide", systemImage: "list.bullet.rectangle") }
             Button { model.openChannelList() } label: { Label("Channels", systemImage: "list.number") }
             Button { model.openSearch() } label: { Label("Search", systemImage: "magnifyingglass") }
@@ -110,7 +110,7 @@ struct TopControls: View {
             }
             .help("Record (R)")
             Button { player.isMuted.toggle() } label: { Image(systemName: player.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill") }
-            Slider(value: $player.volume, in: 0...130).frame(width: 110)
+            Slider(value: $player.volume, in: 0...130).frame(width: Theme.s(110))
             Button { model.toggleFullScreen() } label: {
                 Label(model.isFullScreen ? "Exit Full Screen" : "Full Screen",
                       systemImage: model.isFullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
@@ -119,7 +119,7 @@ struct TopControls: View {
         }
         .buttonStyle(.borderless)
         .labelStyle(.titleAndIcon)
-        .padding(.horizontal, 14).padding(.vertical, 8)
+        .padding(.horizontal, Theme.s(14)).padding(.vertical, Theme.s(8))
         .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 10))
     }
 }
@@ -137,12 +137,12 @@ struct InfoBar: View {
             }()
             let next = current.flatMap { model.library.programme(for: ch, at: $0.stop.addingTimeInterval(1)) }
 
-            HStack(alignment: .top, spacing: 18) {
+            HStack(alignment: .top, spacing: Theme.s(18)) {
                 ChannelLogo(url: ch.logo, size: 56)
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        if ch.number > 0 { Text(verbatim: String(ch.number)).font(.title3.monospacedDigit()).foregroundStyle(Theme.dim) }
-                        Text(ch.name).font(.title3.weight(.semibold)).lineLimit(1)
+                VStack(alignment: .leading, spacing: Theme.s(6)) {
+                    HStack(spacing: Theme.s(8)) {
+                        if ch.number > 0 { Text(verbatim: String(ch.number)).font(Theme.f(.title3).monospacedDigit()).foregroundStyle(Theme.dim) }
+                        Text(ch.name).font(Theme.f(.title3).weight(.semibold)).lineLimit(1)
                         if target.isLive { FavouriteButton(channel: ch) }
                         switch target {
                         case .catchup: Badge(text: "CATCH-UP")
@@ -151,7 +151,7 @@ struct InfoBar: View {
                         }
                         if player.videoSize.height > 0 { Badge(text: resolutionLabel(player.videoSize), color: .gray) }
                         Spacer()
-                        Text(Theme.time.string(from: model.now)).font(.title3.monospacedDigit())
+                        Text(Theme.time.string(from: model.now)).font(Theme.f(.title3).monospacedDigit())
                     }
                     if case .vod = target {
                         if player.duration > 0 { ScrubBar(player: player) }
@@ -160,7 +160,7 @@ struct InfoBar: View {
                         ProgressLine(value: p.progress(at: model.now))
                     } else if let p = current {
                         HStack {
-                            Text(p.displayTitle).font(.title2.weight(.semibold)).lineLimit(1)
+                            Text(p.displayTitle).font(Theme.f(.title2).weight(.semibold)).lineLimit(1)
                             Spacer()
                             Text(Theme.range(p)).foregroundStyle(Theme.dim)
                         }
@@ -169,17 +169,17 @@ struct InfoBar: View {
                         } else {
                             ProgressLine(value: p.progress(at: model.now))
                         }
-                        if let desc = p.desc { Text(desc).font(.callout).foregroundStyle(Theme.dim).lineLimit(2) }
+                        if let desc = p.desc { Text(desc).font(Theme.f(.callout)).foregroundStyle(Theme.dim).lineLimit(2) }
                     } else {
                         Text("No programme information").foregroundStyle(Theme.dim)
                     }
                     if let next {
-                        Text("Next: \(Theme.time.string(from: next.start))  \(next.title)").font(.callout).foregroundStyle(Theme.faint)
+                        Text("Next: \(Theme.time.string(from: next.start))  \(next.title)").font(Theme.f(.callout)).foregroundStyle(Theme.faint)
                     }
                 }
             }
-            .padding(18)
-            .frame(maxWidth: 1100)
+            .padding(Theme.s(18))
+            .frame(maxWidth: Theme.s(1100))
             .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 14))
         }
     }
@@ -203,19 +203,19 @@ struct ChannelListOverlay: View {
     @EnvironmentObject var model: AppModel
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: Theme.s(0)) {
             // Groups
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
+                    LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
                         ForEach(Array(model.library.groups.enumerated()), id: \.element.id) { i, g in
                             let focused = model.channelListFocusGroups && i == model.listGroupSelection
                             HStack {
                                 Text(g.name).lineLimit(1)
                                 Spacer()
-                                Text("\(g.count)").foregroundStyle(focused ? Theme.focusText.opacity(0.6) : Theme.faint).font(.caption)
+                                Text("\(g.count)").foregroundStyle(focused ? Theme.focusText.opacity(0.6) : Theme.faint).font(Theme.f(.caption))
                             }
-                            .padding(.horizontal, 12).padding(.vertical, 8)
+                            .padding(.horizontal, Theme.s(12)).padding(.vertical, Theme.s(8))
                             .background(focused ? Theme.focus : (g.name == model.selectedGroup ? Theme.cellLive : .clear), in: RoundedRectangle(cornerRadius: 6))
                             .foregroundStyle(focused ? Theme.focusText : Theme.text)
                             .contentShape(Rectangle())
@@ -228,17 +228,17 @@ struct ChannelListOverlay: View {
                             .id(i)
                         }
                     }
-                    .padding(8)
+                    .padding(Theme.s(8))
                 }
                 .onChange(of: model.listGroupSelection) { _, i in proxy.scrollTo(i, anchor: .center) }
             }
-            .frame(width: 230)
+            .frame(width: Theme.s(230))
             .background(Theme.bg)
 
             // Channels
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
+                    LazyVStack(alignment: .leading, spacing: Theme.s(2)) {
                         ForEach(Array(model.groupChannels.enumerated()), id: \.element.id) { i, ch in
                             ChannelListRow(channel: ch, focused: !model.channelListFocusGroups && i == model.listSelection)
                                 .onTapGesture(count: 2) { model.play(ch); model.showChannelList = false }
@@ -248,7 +248,7 @@ struct ChannelListOverlay: View {
                                 }
                         }
                     }
-                    .padding(8)
+                    .padding(Theme.s(8))
                     .id(model.selectedGroup)
                 }
                 .onChange(of: model.listSelection) { _, i in
@@ -260,7 +260,7 @@ struct ChannelListOverlay: View {
                     if list.indices.contains(model.listSelection) { proxy.scrollTo(list[model.listSelection].id, anchor: .center) }
                 }
             }
-            .frame(width: 440)
+            .frame(width: Theme.s(440))
             .background(Theme.panel)
         }
     }
@@ -274,20 +274,20 @@ struct ChannelListRow: View {
     var body: some View {
         let p = model.library.programme(for: channel, at: model.now)
         let isPlaying = model.playing?.channel.id == channel.id
-        HStack(spacing: 10) {
-            Text(verbatim: String(channel.number)).font(.callout.monospacedDigit()).frame(width: 40, alignment: .trailing).opacity(0.6)
+        HStack(spacing: Theme.s(10)) {
+            Text(verbatim: String(channel.number)).font(Theme.f(.callout).monospacedDigit()).frame(width: Theme.s(40), alignment: .trailing).opacity(0.6)
             ChannelLogo(url: channel.logo, size: 30)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(channel.name).font(.system(size: 14, weight: .semibold)).lineLimit(1)
-                    if isPlaying { Image(systemName: "speaker.wave.2.fill").font(.caption2).foregroundStyle(focused ? Theme.focusText : Theme.accent) }
+            VStack(alignment: .leading, spacing: Theme.s(3)) {
+                HStack(spacing: Theme.s(6)) {
+                    Text(channel.name).font(.system(size: Theme.uiScale * 14, weight: .semibold)).lineLimit(1)
+                    if isPlaying { Image(systemName: "speaker.wave.2.fill").font(Theme.f(.caption2)).foregroundStyle(focused ? Theme.focusText : Theme.accent) }
                 }
-                Text(p?.title ?? "No information").font(.caption).lineLimit(1).opacity(0.7)
+                Text(p?.title ?? "No information").font(Theme.f(.caption)).lineLimit(1).opacity(0.7)
                 if let p { ProgressLine(value: p.progress(at: model.now), color: focused ? .black.opacity(0.6) : Theme.accent) }
             }
             FavouriteButton(channel: channel, inverted: focused)
         }
-        .padding(.horizontal, 10).padding(.vertical, 7)
+        .padding(.horizontal, Theme.s(10)).padding(.vertical, Theme.s(7))
         .background(focused ? Theme.focus : .clear, in: RoundedRectangle(cornerRadius: 6))
         .foregroundStyle(focused ? Theme.focusText : Theme.text)
         .contentShape(Rectangle())
@@ -304,23 +304,23 @@ struct ScrubBar: View {
     var body: some View {
         let dur = max(player.duration, 1)
         let frac = dragFraction ?? min(1, max(0, player.position / dur))
-        VStack(spacing: 6) {
+        VStack(spacing: Theme.s(6)) {
             GeometryReader { g in
                 let w = g.size.width
                 ZStack(alignment: .leading) {
                     Capsule().fill(Color.white.opacity(0.22)).frame(height: dragFraction != nil ? 8 : 6)
                     Capsule().fill(Theme.accent).frame(width: max(0, w * frac), height: dragFraction != nil ? 8 : 6)
-                    Circle().fill(.white).frame(width: 16, height: 16).shadow(radius: 3)
+                    Circle().fill(.white).frame(width: Theme.s(16), height: Theme.s(16)).shadow(radius: 3)
                         .offset(x: w * frac - 8)
                     if let f = dragFraction ?? hoverFraction {
                         Text(Self.fmt(f * dur))
-                            .font(.caption.monospacedDigit().weight(.semibold))
-                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .font(Theme.f(.caption).monospacedDigit().weight(.semibold))
+                            .padding(.horizontal, Theme.s(6)).padding(.vertical, Theme.s(3))
                             .background(.black.opacity(0.85), in: RoundedRectangle(cornerRadius: 5))
                             .offset(x: min(max(0, w * f - 28), w - 56), y: -24)
                     }
                 }
-                .frame(height: 24)
+                .frame(height: Theme.s(24))
                 .contentShape(Rectangle())
                 .gesture(DragGesture(minimumDistance: 0)
                     .onChanged { v in dragFraction = min(1, max(0, v.location.x / w)) }
@@ -334,7 +334,7 @@ struct ScrubBar: View {
                     if case .active(let p) = phase { hoverFraction = min(1, max(0, p.x / w)) } else { hoverFraction = nil }
                 }
             }
-            .frame(height: 24)
+            .frame(height: Theme.s(24))
             HStack {
                 Text(Self.fmt(frac * dur))
                 Spacer()
@@ -342,7 +342,7 @@ struct ScrubBar: View {
                 Spacer()
                 Text("-" + Self.fmt(max(0, dur - frac * dur)))
             }
-            .font(.caption.monospacedDigit())
+            .font(Theme.f(.caption).monospacedDigit())
             .foregroundStyle(Theme.dim)
         }
     }

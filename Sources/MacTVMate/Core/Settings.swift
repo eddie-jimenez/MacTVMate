@@ -23,6 +23,8 @@ struct AppSettings: Codable, Equatable {
     var showChannelNumbers = true
     var showGroupColumn = true
     var dimPastProgrammes = true
+    /// Interface size in percent; 0 = Auto (100% on monitors, larger on TVs).
+    var interfaceSize = 0
 
     // Playback
     /// TiViMate buffer sizes: 0 Small, 1 Medium, 2 Large, 3 Very large.
@@ -60,6 +62,7 @@ struct AppSettings: Codable, Equatable {
         showChannelNumbers = v(.showChannelNumbers, d.showChannelNumbers)
         showGroupColumn = v(.showGroupColumn, d.showGroupColumn)
         dimPastProgrammes = v(.dimPastProgrammes, d.dimPastProgrammes)
+        interfaceSize = v(.interfaceSize, d.interfaceSize)
         bufferSize = v(.bufferSize, d.bufferSize)
         hardwareDecoding = v(.hardwareDecoding, d.hardwareDecoding)
         preferredAudioLanguage = v(.preferredAudioLanguage, d.preferredAudioLanguage)

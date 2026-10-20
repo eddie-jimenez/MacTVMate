@@ -13,7 +13,7 @@ struct RootView: View {
                 switch model.screen {
                 case .guide: return layout.previewRect.offsetBy(dx: rail + groupCol, dy: 0)
                 case .player: return CGRect(origin: .zero, size: geo.size)
-                default: return CGRect(x: 0, y: 0, width: 1, height: 1)
+                default: return CGRect(x: 0, y: 0, width: Theme.s(1), height: Theme.s(1))
                 }
             }()
 
@@ -26,7 +26,7 @@ struct RootView: View {
                     .opacity(model.screen.isBrowser ? 0 : 1)
                     .onTapGesture(count: 2) { model.toggleFullScreen() }
 
-                HStack(spacing: 0) {
+                HStack(spacing: Theme.s(0)) {
                     if model.screen != .player { Sidebar() }
                     switch model.screen {
                     case .guide:
@@ -56,19 +56,22 @@ struct RootView: View {
                 if let r = model.recorder.dueReminder {
                     ReminderBanner(reminder: r)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .padding(.top, 24)
+                        .padding(.top, Theme.s(24))
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 if !model.numberEntry.isEmpty {
                     Text(model.numberEntry)
-                        .font(.system(size: 44, weight: .semibold, design: .rounded))
-                        .padding(.horizontal, 22).padding(.vertical, 10)
+                        .font(.system(size: Theme.uiScale * 44, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, Theme.s(22)).padding(.vertical, Theme.s(10))
                         .background(.black.opacity(0.75), in: RoundedRectangle(cornerRadius: 10))
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                        .padding(30)
+                        .padding(Theme.s(30))
                 }
             }
+            .font(Theme.f(.body))
+            .controlSize(Theme.control(.regular))
+            .id(model.uiScale)
             .animation(.easeInOut(duration: 0.2), value: model.screen)
             .animation(.easeInOut(duration: 0.2), value: model.showSettings)
             .onAppear { model.guideVisibleSpan = layout.visibleSpan }
@@ -94,10 +97,10 @@ struct GuideLayout {
     // TiViMate's guide geometry (dp on a 960-wide TV canvas): 190 channel column, 41 rows (medium font),
     // 160 per 30 minutes. Scaled to the window so proportions match; the visible time span follows the width.
     var scale: CGFloat { min(2, max(1, size.width / 960)) }
-    var channelColumn: CGFloat { (190 * scale).rounded() }
-    var rowHeight: CGFloat { (AppSettings.rowHeights[min(3, max(0, sizeIndex))] * scale).rounded() }
+    var channelColumn: CGFloat { (190 * scale * Theme.uiScale).rounded() }
+    var rowHeight: CGFloat { (AppSettings.rowHeights[min(3, max(0, sizeIndex))] * scale * Theme.uiScale).rounded() }
     var fontScale: CGFloat { [0.9, 1, 1.12, 1.3][min(3, max(0, sizeIndex))] }
-    var slotWidth: CGFloat { 160 * scale }
+    var slotWidth: CGFloat { 160 * scale * Theme.uiScale }
     var pxPerSecond: CGFloat { slotWidth / 1800 }
     var visibleSpan: TimeInterval { TimeInterval((size.width - channelColumn) / pxPerSecond) }
 }

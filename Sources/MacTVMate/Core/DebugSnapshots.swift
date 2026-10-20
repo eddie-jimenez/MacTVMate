@@ -89,6 +89,13 @@ enum DebugSnapshots {
                 await wait(3); snap("H1-nfl")
                 model.selectedGroup = "US Movies"; model.guideRow = 0
                 await wait(3); snap("H2-usmovies")
+                if ProcessInfo.processInfo.environment["MACTVMATE_FORCE_SCALE"] != nil {
+                    model.screen = .movies; await model.vod.ensureLoaded(.movies)
+                    await wait(4); snap("H3-movies")
+                    model.screen = .guide; model.settingsSection = .appearance; model.showSettings = true
+                    await wait(2); snap("H4-settings")
+                    model.showSettings = false
+                }
                 print("[group] first rows of \(model.selectedGroup): \(model.groupChannels.prefix(3).map(\.name))")
                 print("[snap] done"); fflush(stdout); return
             }

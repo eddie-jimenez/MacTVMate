@@ -10,57 +10,57 @@ struct RecordingsScreen: View {
         let upcoming = recs.filter { $0.status == .scheduled || $0.status == .recording }.sorted { $0.start < $1.start }
         let finished = recs.filter { $0.status != .scheduled && $0.status != .recording }.sorted { $0.start > $1.start }
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: Theme.s(24)) {
                 HStack {
-                    Text("Recordings").font(.largeTitle.weight(.semibold))
+                    Text("Recordings").font(Theme.f(.largeTitle).weight(.semibold))
                     Spacer()
                     Button { NSWorkspace.shared.open(Recorder.folder) } label: { Label("Show in Finder", systemImage: "folder") }
                 }
                 Text("Pick a programme in the guide and choose Record. Recordings run while MacTVMate is open, use a second connection, and are saved as .ts files in ~/Movies/MacTVMate (2 min before / 5 min after padding).")
-                    .font(.callout).foregroundStyle(Theme.dim)
+                    .font(Theme.f(.callout)).foregroundStyle(Theme.dim)
 
                 section("Scheduled & recording", upcoming, empty: "Nothing scheduled.")
                 section("Recorded", finished, empty: "No recordings yet.")
 
                 if !model.library.reminders.isEmpty {
-                    Text("Reminders").font(.title3.weight(.semibold))
+                    Text("Reminders").font(Theme.f(.title3).weight(.semibold))
                     ForEach(model.library.reminders.sorted { $0.start < $1.start }) { r in
                         HStack {
                             Image(systemName: "bell.fill").foregroundStyle(Theme.accent)
                             VStack(alignment: .leading) {
-                                Text(r.title).font(.headline)
-                                Text("\(r.channelName) · \(r.start.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(Theme.dim)
+                                Text(r.title).font(Theme.f(.headline))
+                                Text("\(r.channelName) · \(r.start.formatted(date: .abbreviated, time: .shortened))").font(Theme.f(.caption)).foregroundStyle(Theme.dim)
                             }
                             Spacer()
                             Button(role: .destructive) { model.library.reminders.removeAll { $0.id == r.id } } label: { Image(systemName: "trash") }
                                 .buttonStyle(.borderless)
                         }
-                        .padding(10).background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
+                        .padding(Theme.s(10)).background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }
-            .padding(28)
+            .padding(Theme.s(28))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.bg)
     }
 
     @ViewBuilder private func section(_ title: String, _ items: [Recording], empty: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.title3.weight(.semibold))
+        VStack(alignment: .leading, spacing: Theme.s(8)) {
+            Text(title).font(Theme.f(.title3).weight(.semibold))
             if items.isEmpty { Text(empty).foregroundStyle(Theme.faint) }
             ForEach(items) { r in row(r) }
         }
     }
 
     private func row(_ r: Recording) -> some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Theme.s(12)) {
             statusIcon(r)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(r.title).font(.headline).lineLimit(1)
+            VStack(alignment: .leading, spacing: Theme.s(3)) {
+                Text(r.title).font(Theme.f(.headline)).lineLimit(1)
                 Text("\(r.channelName) · \(r.start.formatted(date: .abbreviated, time: .shortened)) – \(r.stop.formatted(date: .omitted, time: .shortened))")
-                    .font(.caption).foregroundStyle(Theme.dim)
-                if let e = r.error { Text(e).font(.caption).foregroundStyle(.orange).lineLimit(1) }
+                    .font(Theme.f(.caption)).foregroundStyle(Theme.dim)
+                if let e = r.error { Text(e).font(Theme.f(.caption)).foregroundStyle(.orange).lineLimit(1) }
             }
             Spacer()
             if r.status == .done, let f = r.file {
@@ -77,7 +77,7 @@ struct RecordingsScreen: View {
                 .buttonStyle(.borderless)
                 .help(r.file != nil ? "Delete (moves the file to the Trash)" : "Remove")
         }
-        .padding(10)
+        .padding(Theme.s(10))
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 8))
     }
 
@@ -91,7 +91,7 @@ struct RecordingsScreen: View {
             case .cancelled: return ("xmark.circle", Theme.faint)
             }
         }()
-        return Image(systemName: icon).foregroundStyle(color).font(.title3).frame(width: 26)
+        return Image(systemName: icon).foregroundStyle(color).font(Theme.f(.title3)).frame(width: Theme.s(26))
     }
 }
 
@@ -101,12 +101,12 @@ struct ReminderBanner: View {
     let reminder: Reminder
 
     var body: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "bell.badge.fill").font(.title2).foregroundStyle(Theme.accent)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Starting \(reminder.start <= Date() ? "now" : "at " + Theme.time.string(from: reminder.start))").font(.caption).foregroundStyle(Theme.dim)
-                Text(reminder.title).font(.headline)
-                Text(reminder.channelName).font(.caption).foregroundStyle(Theme.dim)
+        HStack(spacing: Theme.s(14)) {
+            Image(systemName: "bell.badge.fill").font(Theme.f(.title2)).foregroundStyle(Theme.accent)
+            VStack(alignment: .leading, spacing: Theme.s(2)) {
+                Text("Starting \(reminder.start <= Date() ? "now" : "at " + Theme.time.string(from: reminder.start))").font(Theme.f(.caption)).foregroundStyle(Theme.dim)
+                Text(reminder.title).font(Theme.f(.headline))
+                Text(reminder.channelName).font(Theme.f(.caption)).foregroundStyle(Theme.dim)
             }
             Spacer(minLength: 20)
             Button("Watch") {
@@ -116,8 +116,8 @@ struct ReminderBanner: View {
             .buttonStyle(.borderedProminent).tint(Theme.accent)
             Button("Dismiss") { model.recorder.dismissReminder() }
         }
-        .padding(16)
-        .frame(width: 520)
+        .padding(Theme.s(16))
+        .frame(width: Theme.s(520))
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 12))
         .shadow(radius: 20)
     }

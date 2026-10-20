@@ -48,6 +48,9 @@ final class AppModel: ObservableObject {
         didSet { screenChanged(from: oldValue) }
     }
     @Published var showSettings = false
+    /// Current interface scale (mirrors Theme.uiScale) and the display it was computed for.
+    @Published private(set) var uiScale: CGFloat = 1
+    @Published private(set) var displayInfo = ""
     /// Settings, bindable from views (`$model.settings.x`).
     var settings: AppSettings {
         get { library.settings }
@@ -110,7 +113,14 @@ final class AppModel: ObservableObject {
         library.$settings.removeDuplicates().sink { [weak self] s in
             Theme.accent = s.accentColor
             self?.player.apply(s)
+            DispatchQueue.main.async { self?.updateUIScale() }
         }.store(in: &bag)
+        // Re-scale when the window moves to another display (e.g. dragged onto the TV) or displays change.
+        for name in [NSWindow.didChangeScreenNotification, NSWindow.didBecomeMainNotification,
+                     NSApplication.didChangeScreenParametersNotification] {
+            NotificationCenter.default.publisher(for: name)
+                .sink { [weak self] _ in DispatchQueue.main.async { self?.updateUIScale() } }.store(in: &bag)
+        }
         // Remember where movies/episodes were left.
         Timer.publish(every: 10, on: .main, in: .common).autoconnect().sink { [weak self] _ in
             self?.saveVODPosition()
@@ -220,6 +230,35 @@ final class AppModel: ObservableObject {
     func toggleRecord(_ channel: Channel, _ p: Programme) {
         if let r = recorder.recording(for: channel, p), r.status == .scheduled || r.status == .recording { recorder.cancel(r) }
         else { record(channel, p) }
+    }
+
+    // MARK: Interface scale (TV / 10-foot)
+
+    func updateUIScale() {
+        let window = NSApp.mainWindow ?? NSApp.windows.first { $0.isVisible }
+        guard let screen = window?.screen ?? NSScreen.main else { return }
+        let tv = Self.isTV(screen)
+        let auto: CGFloat = tv ? min(3, max(1.3, screen.frame.height / 1080 * 1.6)) : 1
+        let pct = library.settings.interfaceSize
+        var scale = pct > 0 ? CGFloat(pct) / 100 : auto
+        if let forced = ProcessInfo.processInfo.environment["MACTVMATE_FORCE_SCALE"].flatMap(Double.init) { scale = forced }  // debug
+        displayInfo = "\(screen.localizedName)\(tv ? " (TV)" : "") · \(Int((scale * 100).rounded()))%"
+        guard abs(scale - uiScale) > 0.01 else { return }
+        Theme.uiScale = scale
+        uiScale = scale
+    }
+
+    /// A TV: 39"+ with a TV-shaped (not ultrawide) panel, or "TV" in its name (AirPlay/HDMI TVs usually say so).
+    static func isTV(_ screen: NSScreen) -> Bool {
+        let name = screen.localizedName.lowercased()
+        if name.contains("tv") || name.contains("television") { return true }
+        guard let n = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
+        let id = CGDirectDisplayID(n.uint32Value)
+        if CGDisplayIsBuiltin(id) != 0 { return false }
+        let mm = CGDisplayScreenSize(id)
+        guard mm.width > 0, mm.height > 0 else { return false }
+        let diagonal = hypot(mm.width, mm.height) / 25.4
+        return diagonal >= 39 && mm.width / mm.height < 2
     }
 
     /// Screens/panels that contain text fields (search, settings, Movies/Shows search).
