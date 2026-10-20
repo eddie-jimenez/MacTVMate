@@ -593,8 +593,8 @@ final class AppModel: ObservableObject {
     private func handleGuideKey(_ e: NSEvent, _ chars: String) -> Bool {
         switch e.keyCode {
         // ↑/↓ are channel up/down (44 → 45 / 44 → 43) unless set to follow the screen.
-        case 126: guideMove(rows: library.settings.guideArrowsFollowChannelNumbers ? 1 : -1)   // up
-        case 125: guideMove(rows: library.settings.guideArrowsFollowChannelNumbers ? -1 : 1)   // down
+        case 126: guideMove(rows: library.settings.guideArrowsChangeChannelNumber ? 1 : -1)   // up
+        case 125: guideMove(rows: library.settings.guideArrowsChangeChannelNumber ? -1 : 1)   // down
         case 123: guideMove(programmes: -1)          // left
         case 124: guideMove(programmes: 1)           // right
         case 116: guideMove(rows: -8)                // page up

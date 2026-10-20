@@ -233,8 +233,8 @@ struct RemoteSettings: View {
 
     var body: some View {
         SettingsGroup(title: "TV guide navigation") {
-            Toggle("↑ / ↓ change channel number (↓ = 44 → 43, like a TV remote)", isOn: $model.settings.guideArrowsFollowChannelNumbers)
-            Text("Off: ↑ / ↓ move up and down the grid on screen instead.").font(.caption).foregroundStyle(Theme.dim)
+            Toggle("↑ / ↓ change channel number (↓ = 44 → 43, like a TV remote)", isOn: $model.settings.guideArrowsChangeChannelNumber)
+            Text("Off (default): ↓ moves down the grid to the next channel (44 → 45). The full-screen player always uses ↓ = channel down.").font(.caption).foregroundStyle(Theme.dim)
         }
         SettingsGroup(title: "iPhone / iPad remote") {
             Toggle("Allow remote control from devices on this Wi-Fi", isOn: $model.settings.webRemoteEnabled)
