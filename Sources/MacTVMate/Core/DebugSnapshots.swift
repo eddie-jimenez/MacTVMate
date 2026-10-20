@@ -26,7 +26,7 @@ enum DebugSnapshots {
                 try? rep.representation(using: .png, properties: [:])?.write(to: base.appendingPathComponent("\(name).png"))
                 model.player.screenshot(to: base.appendingPathComponent("\(name)-video.png"))
                 let p = model.player
-                print("[snap] \(name) screen=\(model.screen) playing=\(model.playing?.channel.name ?? "-") idle=\(p.isIdle) buffering=\(p.isBuffering) video=\(p.videoSize) err=\(p.errorMessage ?? "-") channels=\(model.library.channels.count) status=\(model.library.status ?? "-") libErr=\(model.library.error ?? "-")")
+                print("[snap] \(name) screen=\(model.screen) playing=\(model.playing?.channel.name ?? "-") idle=\(p.isIdle) buffering=\(p.isBuffering) tuning=\(p.tuning) blank=\(p.blankVideo) video=\(p.videoSize) err=\(p.errorMessage ?? "-") channels=\(model.library.channels.count) status=\(model.library.status ?? "-") libErr=\(model.library.error ?? "-")")
                 fflush(stdout)
             }
             if ProcessInfo.processInfo.environment["MACTVMATE_VOD_TEST"] != nil {

@@ -15,7 +15,7 @@ struct PlayerOverlay: View {
                     if case .active = phase { pokeHover() }
                 }
 
-            if player.isBuffering || (model.playing != nil && player.isIdle && player.errorMessage == nil) {
+            if player.isBuffering || player.tuning || (model.playing != nil && player.isIdle && player.errorMessage == nil) {
                 ProgressView().controlSize(.large).tint(.white)
             }
             if let err = player.errorMessage {

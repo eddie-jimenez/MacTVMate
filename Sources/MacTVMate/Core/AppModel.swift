@@ -371,7 +371,7 @@ final class AppModel: ObservableObject {
         guard previewInGuide, screen == .guide else { return }
         previewTask?.cancel()
         previewTask = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(700))
+            try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled, let self, let ch = self.guideSelectedChannel else { return }
             if case .live(let c)? = self.playing, c.id == ch.id { return }
             self.play(ch, fullscreen: false)

@@ -10,6 +10,17 @@ final class MPVController: ObservableObject {
     @Published private(set) var videoSize: CGSize = .zero
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRecording = false
+    /// True from a channel switch until the new stream's first frame, so stale frames of the old channel never show.
+    @Published private(set) var tuning = false
+    private let blankLock = NSLock()
+    private var _blank = false
+    /// Set by the video layer: redraw now (used to blank the screen the moment a channel switch starts).
+    var requestRedraw: (() -> Void)?
+    /// Read by the render thread: draw black instead of mpv's last (previous-channel) frame.
+    var blankVideo: Bool {
+        get { blankLock.lock(); defer { blankLock.unlock() }; return _blank }
+        set { blankLock.lock(); _blank = newValue; blankLock.unlock() }
+    }
     @Published var volume: Double = 100 { didSet { setDouble("volume", volume) } }
     @Published var isMuted = false { didSet { setFlag("mute", isMuted) } }
     @Published private(set) var audioTracks: [Track] = []
@@ -160,6 +171,9 @@ final class MPVController: ObservableObject {
 
     private func start() {
         guard let c = current else { return }
+        tuning = true
+        blankVideo = true
+        requestRedraw?()
         let url = c.url, userAgent = c.userAgent, referrer = c.referrer
         // Movies/episodes resume where they were left (also used when retrying after an error).
         setString("start", c.startAt.map { String(Int($0)) } ?? "none")
@@ -171,6 +185,8 @@ final class MPVController: ObservableObject {
 
     func stop() {
         current = nil
+        tuning = false
+        blankVideo = true
         stallWatchdog?.cancel()
         if isRecording { stopRecording() }
         command(["stop"])
@@ -263,7 +279,9 @@ final class MPVController: ObservableObject {
                     DispatchQueue.main.async { if self.current?.isLive == true { self.start() } }
                 }
             case MPV_EVENT_PLAYBACK_RESTART:
-                DispatchQueue.main.async { self.retries = 0 }
+                // First frame of the new stream (or after a seek): show video again.
+                blankVideo = false
+                DispatchQueue.main.async { self.retries = 0; self.tuning = false }
             case MPV_EVENT_FILE_LOADED:
                 DispatchQueue.main.async { self.errorMessage = nil; self.refreshTracks() }
             case MPV_EVENT_SHUTDOWN:
@@ -296,6 +314,7 @@ final class MPVController: ObservableObject {
     private func handleFailure(_ message: String) {
         guard current != nil, retries < Self.maxRetries else {
             errorMessage = message
+            tuning = false
             return
         }
         retries += 1

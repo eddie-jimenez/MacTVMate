@@ -482,6 +482,25 @@ struct PreviewControls: View {
                 .onTapGesture(count: 2) { model.toggleFullScreen() }
                 .onTapGesture { if model.playing != nil { model.screen = .player; model.flashInfoBar() } }
 
+            if let target = model.playing {
+                if let err = player.errorMessage {
+                    VStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill").font(.title2).foregroundStyle(.orange)
+                        Text(err).font(.callout).multilineTextAlignment(.center)
+                        Text(target.channel.name).font(.caption).foregroundStyle(Theme.dim).lineLimit(1)
+                        Button("Retry") { model.play(target.channel, fullscreen: false) }.controlSize(.small)
+                    }
+                    .padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.black.opacity(0.75))
+                } else if player.tuning {
+                    VStack(spacing: 10) {
+                        ProgressView().controlSize(.regular).tint(.white)
+                        Text("Tuning \(target.channel.name)…").font(.callout).foregroundStyle(Theme.dim).lineLimit(1)
+                    }
+                    .padding(16).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                }
+            }
             if hover, let target = model.playing {
                 VStack(spacing: 0) {
                     HStack(spacing: 6) {

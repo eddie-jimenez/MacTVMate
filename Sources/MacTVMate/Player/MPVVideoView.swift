@@ -47,6 +47,7 @@ final class MPVLayer: CAOpenGLLayer {
         CGLEnable(ctx!, kCGLCEMPEngine)
         CGLSetCurrentContext(ctx)
         controller?.createRenderContext()
+        controller?.requestRedraw = { [weak self] in self?.renderQueue.async { self?.display() } }
         controller?.setRenderUpdateCallback({ ctx in
             let layer = Unmanaged<MPVLayer>.fromOpaque(ctx!).takeUnretainedValue()
             layer.renderQueue.async { layer.display() }
@@ -67,7 +68,8 @@ final class MPVLayer: CAOpenGLLayer {
         glGetIntegerv(GLenum(GL_VIEWPORT), &viewport)
         glClearColor(0, 0, 0, 1)
         glClear(GLbitfield(GL_COLOR_BUFFER_BIT))
-        controller.render(fbo: fbo, width: viewport[2], height: viewport[3])
+        // While switching channels, keep the screen black rather than the previous channel's last frame.
+        if !controller.blankVideo { controller.render(fbo: fbo, width: viewport[2], height: viewport[3]) }
         glFlush()
         controller.reportSwap()
     }
