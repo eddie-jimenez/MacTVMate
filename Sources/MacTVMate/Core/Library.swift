@@ -363,28 +363,44 @@ final class Library: ObservableObject {
         for (i, r) in results.enumerated() {
             for (id, list) in r.programmes { merged["s\(i)|\(id)"] = list }
             // Several feeds can share a name ("Cinemax" US and LatAm): prefer English listings.
-            func better(_ a: String?, _ b: String) -> String {
+            // East and West feeds normalise to the same name, so each display name is keyed with its own feed
+            // ("HBO Zone" → e, "HBO Zone (West)" → w). Public guides mix aliases ("hbozone.us" also lists
+            // "HBO Zone (West)"), so when two guide channels claim a key, the one that is mostly that feed wins.
+            var westShare: [String: Double] = [:]
+            for (id, names) in r.displayNames {
+                let w = names.filter { ChannelMatch.feed($0) == "w" }.count
+                westShare[id] = min(1, (names.isEmpty ? 0 : Double(w) / Double(names.count)) + (id.lowercased().contains("west") ? 0.5 : 0))
+            }
+            func better(_ a: String?, _ b: String, feed: String) -> String {
                 guard let a else { return b }
                 let la = r.languages[a] ?? "en", lb = r.languages[b] ?? "en"
-                return la != "en" && lb == "en" ? b : a
+                if la != "en" && lb == "en" { return b }
+                if lb != "en" && la == "en" { return a }
+                let target = feed == "w" ? 1.0 : 0.0
+                return abs((westShare[b] ?? 0) - target) < abs((westShare[a] ?? 0) - target) ? b : a
             }
             var byName: [String: String] = [:]
             var byStation: [String: String] = [:]
             for (id, names) in r.displayNames where r.programmes[id] != nil {
-                for n in names { let k = Self.normalise(n); byName[k] = better(byName[k], id) }
-                let k = Self.normalise(id); byName[k] = better(byName[k], id)
+                for n in names {
+                    let f = ChannelMatch.feed(n), k = ChannelMatch.key(Self.normalise(n), feed: f)
+                    byName[k] = better(byName[k], id, feed: f)
+                }
+                let f = names.isEmpty ? ChannelMatch.feed(id) : ((westShare[id] ?? 0) > 0.5 ? "w" : "e")
+                let k = ChannelMatch.key(Self.normalise(id), feed: f); byName[k] = better(byName[k], id, feed: f)
                 // Gracenote ids ("I2.1.19600.gracenote.com") carry the TMS station number some panels use as tvg-id.
                 if let station = id.split(separator: ".").dropLast(2).last, id.hasSuffix("gracenote.com") { byStation[String(station)] = id }
             }
             var n = 0
             for c in channels where map[c.id] == nil {
                 let epg = c.epgID.map(XMLTVParser.key)
+                let feed = ChannelMatch.feed(c.name)
                 let hit: String? = {
                     if let e = epg, r.programmes[e] != nil { return e }
                     if let e = c.epgID, let id = byStation[e], r.programmes[id] != nil { return id }
-                    if let e = c.epgID, let id = byName[Self.normalise(e)], r.programmes[id] != nil { return id }
+                    if let e = c.epgID, let id = byName[ChannelMatch.key(Self.normalise(e), feed: feed)], r.programmes[id] != nil { return id }
                     for k in ChannelMatch.candidates(c.name) {
-                        if let id = byName[k], r.programmes[id] != nil { return id }
+                        if let id = byName[ChannelMatch.key(k, feed: feed)], r.programmes[id] != nil { return id }
                     }
                     return nil
                 }()

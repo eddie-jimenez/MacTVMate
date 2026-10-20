@@ -13,6 +13,18 @@ enum ChannelMatch {
         return t.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(String.init).joined()
     }
 
+    /// Which feed a name refers to: "w" for West / Pacific ("HBO Zone West", "HBO (W)"), else "e".
+    /// Whole words only, so "Westerns" or "Bally Sports Southwest" stay East.
+    /// US premium channels run their West feed 3 hours behind, so the two must never share listings.
+    static func feed(_ s: String) -> String {
+        let t = s.lowercased()
+        if t.range(of: #"(\bwest\b|\bpacific\b|[\(\[]\s*w\s*[\)\]]|\bpst\b)"#, options: .regularExpression) != nil { return "w" }
+        return "e"
+    }
+
+    /// Lookup key: normalised name plus feed.
+    static func key(_ normalised: String, feed: String) -> String { normalised + "|" + feed }
+
     /// Forms of a playlist name worth trying, best first:
     /// "US The Movie Channel (TMC) (East) (X)" → "themoviechanneltmc", "themoviechannel", "moviechannel", "tmc".
     private static let abbreviationRE = try! NSRegularExpression(pattern: #"[\(\[]\s*([A-Z0-9&+]{2,6})\s*[\)\]]"#)
