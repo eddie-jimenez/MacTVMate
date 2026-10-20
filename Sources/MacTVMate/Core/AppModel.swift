@@ -222,7 +222,16 @@ final class AppModel: ObservableObject {
         else { record(channel, p) }
     }
 
+    /// Screens/panels that contain text fields (search, settings, Movies/Shows search).
+    var textEntryOnScreen: Bool { showSearch || showSettings || screen.isBrowser }
+
+    /// Drop keyboard focus from any (possibly hidden) text field so arrows drive the guide/player again.
+    func releaseTextFocus() {
+        if let w = NSApp.keyWindow, w.firstResponder is NSTextView { w.makeFirstResponder(nil) }
+    }
+
     private func screenChanged(from old: Screen) {
+        releaseTextFocus()
         guard old != screen else { return }
         if screen.isBrowser, case .live(let c)? = playing {
             // Like TiViMate, the live preview stops while browsing Movies/Shows.
@@ -383,9 +392,15 @@ final class AppModel: ObservableObject {
     private func installKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard let self else { return event }
-            // Let text fields handle their own typing.
-            if let responder = event.window?.firstResponder, responder is NSTextView { return event }
-            return MainActor.assumeIsolated { self.handleKey(event) } ? nil : event
+            return MainActor.assumeIsolated {
+                // Text fields get their own typing — but only where text fields are actually on screen.
+                // A search box from another screen can keep focus invisibly; on the guide/player that must not swallow arrows.
+                if let window = event.window, window.firstResponder is NSTextView {
+                    if self.textEntryOnScreen || window.attachedSheet != nil || NSApp.modalWindow != nil { return event }
+                    window.makeFirstResponder(nil)
+                }
+                return self.handleKey(event) ? nil : event
+            }
         }
     }
 

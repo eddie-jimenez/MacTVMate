@@ -355,7 +355,15 @@ struct GuideRow: View {
                     cell(title: channel.name, subtitle: "No information", x: 0, width: (end.timeIntervalSince(start)) * pxPerSec,
                          focused: selectedRow, live: true, fs: fs)
                         .onTapGesture(count: 2) { model.play(channel) }
-                        .onTapGesture { model.guideRow = row; model.guideTime = model.now; model.preview(channel) }
+                        .onTapGesture { model.releaseTextFocus(); model.guideRow = row; model.guideTime = model.now; model.preview(channel) }
+                    // Time cursor: ←/→ on a row without listings moves in 30-minute steps; show where it is.
+                    if selectedRow, model.guideTime >= start, model.guideTime < end {
+                        let slotStart = AppModel.slotFloor(model.guideTime)
+                        Rectangle().fill(Theme.accent.opacity(0.35))
+                            .frame(width: max(2, 1800 * pxPerSec - 2), height: layout.rowHeight)
+                            .offset(x: max(0, slotStart.timeIntervalSince(start)) * pxPerSec)
+                            .allowsHitTesting(false)
+                    }
                 }
                 ForEach(progs) { p in
                     let x0 = max(p.start, start).timeIntervalSince(start) * pxPerSec
@@ -372,6 +380,7 @@ struct GuideRow: View {
                             model.guideRow = row; model.guideTime = p.start.addingTimeInterval(1); model.guideActivate()
                         }
                         .onTapGesture {
+                            model.releaseTextFocus()
                             model.guideRow = row
                             model.guideTime = max(p.start, start).addingTimeInterval(1)
                             // What's on now plays in the preview; past/future programmes are just selected.

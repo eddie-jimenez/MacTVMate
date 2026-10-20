@@ -29,6 +29,31 @@ enum DebugSnapshots {
                 print("[snap] \(name) screen=\(model.screen) playing=\(model.playing?.channel.name ?? "-") idle=\(p.isIdle) buffering=\(p.isBuffering) tuning=\(p.tuning) blank=\(p.blankVideo) video=\(p.videoSize) err=\(p.errorMessage ?? "-") channels=\(model.library.channels.count) status=\(model.library.status ?? "-") libErr=\(model.library.error ?? "-")")
                 fflush(stdout)
             }
+            if ProcessInfo.processInfo.environment["MACTVMATE_KEY_TEST"] != nil {
+                for _ in 0..<60 where model.library.channels.isEmpty { await wait(1) }
+                for _ in 0..<120 where model.library.epgLoadedAt == nil { await wait(1) }
+                model.screen = .guide; model.selectedGroup = "US Movies"; model.guideRow = 3; model.guideTime = .now
+                await wait(2)
+                @MainActor func state(_ tag: String) {
+                    let ch = model.guideSelectedChannel
+                    print("[key] \(tag): row \(model.guideRow) \(ch.map { "\($0.number) \($0.name)" } ?? "-") | \(model.guideSelectedProgramme?.displayTitle ?? "-") | first responder \(NSApp.keyWindow?.firstResponder.map { String(describing: type(of: $0)) } ?? "nil") key window \(NSApp.keyWindow != nil)")
+                    fflush(stdout)
+                }
+                // Reproduce the stuck state: a text field takes focus, then disappears (like leaving a search box).
+                if let w = NSApp.keyWindow, let content = w.contentView {
+                    let f = NSTextField(frame: NSRect(x: 0, y: 0, width: 10, height: 10))
+                    content.addSubview(f)
+                    w.makeFirstResponder(f)
+                    f.isHidden = true
+                }
+                state("start (stale text focus)")
+                for (code, chars, name) in [(UInt16(125), "\u{F701}", "down"), (125, "\u{F701}", "down"), (124, "\u{F703}", "right"), (124, "\u{F703}", "right"), (126, "\u{F700}", "up"), (123, "\u{F702}", "left")] {
+                    model.remoteAction(code == 125 ? .down : code == 126 ? .up : code == 124 ? .right : .left)
+                    await wait(1.2)
+                    state(name + " (\(chars.count))")
+                }
+                print("[snap] done"); fflush(stdout); return
+            }
             if ProcessInfo.processInfo.environment["MACTVMATE_VOD_TEST"] != nil {
                 for _ in 0..<60 where model.library.channels.isEmpty { await wait(1) }
                 for _ in 0..<60 where !model.meta.imdbReady { await wait(1) }
